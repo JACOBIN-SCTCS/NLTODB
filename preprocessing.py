@@ -43,7 +43,7 @@ def load_dataset(filetype):
 # to ASCII using the unicodedata.normalize function
 #   Taken from https://www.programcreek.com/python/example/1020/unicodedata.category
 #   and https://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
-
+#
 
 
 def unicodeToAscii(text):
