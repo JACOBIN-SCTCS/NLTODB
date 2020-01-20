@@ -1,4 +1,5 @@
-
+#To download the Glove word embedding tokens. 
+#Script written for testing on local system.
 
 # Reference https://github.com/xiaojunxu/SQLNet/blob/master/download_glove.sh
 
