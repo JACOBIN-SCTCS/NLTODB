@@ -7,7 +7,7 @@ import unicodedata
 # returns the contents of the file suitable for processing
 
 
-def load_dataset(filetype):
+def load_dataset(filetype,use_small=True):
     
     sql_file_name = 'data/'+filetype+'.jsonl'
     tables_file_name = 'data/'+filetype+'.tables.jsonl'
@@ -26,14 +26,21 @@ def load_dataset(filetype):
     for table in tables_list:
         table = eval(table)
 
-        tables_dict[table['id']] = table['header']
+        tables_dict[table['id']] = table
     
-    for dataobj in sql_file.readlines()[:1000]:
+    if use_small:
+
+        for dataobj in sql_file.readlines()[:1000]:
         
-        # eval() function is used to convert a dictionary represented in string to python dictionary
-        dataobj = eval(dataobj)
-        sql_list.append(dataobj)
-            
+            # eval() function is used to convert a dictionary represented in string to python dictionary
+            dataobj = eval(dataobj)
+            sql_list.append(dataobj)
+    else:
+
+        for dataobj in sql_file.readlines():
+            dataobj = eval(dataobj)
+            sql_list.append(dataobj)
+        
         
     return sql_list,tables_dict
 
@@ -48,6 +55,16 @@ def load_dataset(filetype):
 
 def unicodeToAscii(text):
 
+    suffix_s =  [ ('how\'s','how is') , ('what\'s','what is') ] 
+
+    text = text.lower()
+    text = text.replace('?','')
+    text = text.replace('\u00a0',' ')
+    text = text.replace('\"','')
+    for suffix in suffix_s:
+        text = text.replace(suffix[0],suffix[1])
+
+    
     text = unicodedata.normalize("NFD",text)
     output = []
     for char in text:
