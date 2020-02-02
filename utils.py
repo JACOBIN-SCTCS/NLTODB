@@ -2,8 +2,13 @@ import json
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
-from preprocessing import *
+from preprocessing import load_dataset,unicodeToAscii,splitColumnNames
 from torch.utils.data import Dataset,DataLoader
+
+
+def collate_fn(batch):
+    # "Puts each data field into a tensor with outer dimension batch size"
+    return {key: [d[key] for d in batch] for key in batch[0]}
 
 
 
@@ -33,11 +38,15 @@ class SQLDataset(Dataset):
 
         table_id = sql_item['table_id']
         question_tokens = unicodeToAscii(sql_item['question']).split(' ')
+        column_headers = splitColumnNames( self.table_data[table_id]['header'] )
+        column_num = len(self.table_data[table_id]['header'])
         sql_query =  sql_item_sql["agg"]
 
         return {
             'table_id': table_id,
             'question_tokens' : question_tokens,
+            'column_headers' : column_headers,
+            'column_num'    : column_num,
             'sql_query': sql_query
         }
 
@@ -45,11 +54,12 @@ class SQLDataset(Dataset):
 
 # For testing purposes only Uncomment the code for testing
 '''
-
 sq = SQLDataset('train')
-sql_dataloader = DataLoader(sq,batch_size=64,num_workers=3)
+sql_dataloader = DataLoader(sq,batch_size=5,num_workers=1,collate_fn=collate_fn)
 g=next(iter(sql_dataloader))
-print(g['question_tokens'])
+print(g)
 '''
+
+
 
 

@@ -75,6 +75,15 @@ def unicodeToAscii(text):
 
 
 
+def splitColumnNames(column_list):
+    return [ unicodeToAscii(col).split(' ') for col in column_list ]
+
+
+#print( len(splitColumnNames(['Time', 'Big Ten Team'])))
+
+    
+    
+    
 
 
 
