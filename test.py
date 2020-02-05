@@ -21,13 +21,13 @@ sql_dataloader = DataLoader(sq,batch_size=batch_size,shuffle=True,num_workers=1,
 g=next(iter(sql_dataloader))
 
 word_emb = WordEmbedding(N_word,word_embed)
-embeddings,len = word_emb.gen_x_batch(g['question_tokens'],g['column_headers'])
-print(embeddings)
+#embeddings,length = word_emb.gen_x_batch(g['question_tokens'],g['column_headers'])
+#print(embeddings)
 #sql_query = np.asarray(g['sql_query'])
 #agg_tensor = torch.from_numpy(sql_query)
 #print(agg_tensor.shape)
 
-'''
+
 agg_model = AggPredictor(N_word,hidden_dim)
 epochs = 10
 
@@ -44,7 +44,7 @@ for e in range(epochs):
         agg_model.zero_grad()
 
         embeddings ,length = word_emb.gen_x_batch(data['question_tokens'],data['column_headers'])
-        scores = agg_model(embeddings,hidden)
+        scores = agg_model(embeddings ,length,hidden)
             
         agg_tensor = torch.from_numpy( np.asarray(data['sql_query']) )
 
@@ -56,4 +56,4 @@ for e in range(epochs):
         print('Loss {} ----- {}'.format(e,loss.item()))
         
         
-'''
+

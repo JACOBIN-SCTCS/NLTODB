@@ -75,8 +75,21 @@ def unicodeToAscii(text):
 
 
 
+# The function takes in a list of column names and produce a list of list of tokens in each column
+# Example :   ['Time', 'Big Ten Team']     ------>    [ ['time'] , ['big','ten','team'], ] 
+#
+
 def splitColumnNames(column_list):
     return [ unicodeToAscii(col).split(' ') for col in column_list ]
+
+
+
+
+
+
+
+
+
 
 
 #print( len(splitColumnNames(['Time', 'Big Ten Team'])))
