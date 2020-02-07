@@ -27,12 +27,24 @@ word_emb = WordEmbedding(N_word,word_embed)
 #agg_tensor = torch.from_numpy(sql_query)
 #print(agg_tensor.shape)
 
+name_inp_var , name_len , col_len = word_emb.gen_column_batch( g['column_headers'])
 
+print(g['column_headers'] )
+print(name_inp_var.shape)
+print(name_len)
+print(col_len)
+
+
+
+
+
+'''
 agg_model = AggPredictor(N_word,hidden_dim)
 epochs = 10
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(agg_model.parameters(),lr=0.01)
+
 
 
 agg_model.train()
@@ -56,4 +68,4 @@ for e in range(epochs):
         print('Loss {} ----- {}'.format(e,loss.item()))
         
         
-
+'''

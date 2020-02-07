@@ -53,12 +53,15 @@ class SQLDataset(Dataset):
     
 
 # For testing purposes only Uncomment the code for testing
-'''
-sq = SQLDataset('train')
+
+
+'''sq = SQLDataset('train')
 sql_dataloader = DataLoader(sq,batch_size=5,num_workers=1,collate_fn=collate_fn)
 g=next(iter(sql_dataloader))
-print(g)
+print(g['column_headers'])
 '''
+
+
 
 
 
