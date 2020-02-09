@@ -3,6 +3,7 @@ from wordembedding import WordEmbedding
 from extract_vocab import load_word_emb
 from torch.utils.data import Dataset,DataLoader
 from agg_predictor import AggPredictor
+from net_utils import column_encode,run_lstm
 import torch.nn as nn
 import torch.optim as optim
 import torch
@@ -29,11 +30,15 @@ word_emb = WordEmbedding(N_word,word_embed)
 
 name_inp_var , name_len , col_len = word_emb.gen_column_batch( g['column_headers'])
 
-print(g['column_headers'] )
-print(name_inp_var.shape)
-print(name_len)
-print(col_len)
+#print(g['column_headers'] )
+#print(name_inp_var.shape)
+#print(name_len)
+#print(col_len)
 
+
+rnn = nn.LSTM(N_word,hidden_dim,batch_first=True)
+ret_var,col_len = column_encode( rnn , name_inp_var,name_len,col_len )
+print(ret_var)
 
 
 

@@ -42,3 +42,24 @@ def run_lstm(lstm, inp , inp_length,hidden=None ):
     return ret_output,ret_hidden
 
 
+
+def column_encode( lstm ,  col_inp_var, name_length ,col_length ):
+
+    col_hidden , col_out =  run_lstm( lstm, col_inp_var, name_length )
+    
+    name_out = col_hidden[ tuple(range(len(name_length))) , name_length-1  ]
+
+    ret = torch.FloatTensor( len(col_length) , max(col_length) , name_out.size()[1]  ).zero_()
+
+    st = 0 
+    for  i ,cur_len in enumerate(col_length):
+        ret[i, :cur_len] = name_out.data[st: st+cur_len]
+        st += cur_len
+
+    ret_var = Variable(ret)
+
+    return ret_var,col_length
+
+
+
+
