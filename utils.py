@@ -52,6 +52,43 @@ class SQLDataset(Dataset):
 
     
 
+
+
+
+
+def train_model( model, n_epochs , optimizer,dataloader ):
+
+    model.train()
+
+    for e in range(n_epochs):
+
+        epoch_loss = 0
+
+        for data in dataloader:
+
+            model.zero_grad()
+            optimizer.zero_grad()
+
+            scores = model(data['question_tokens'] , data['column_headers'] ,(True,None,None))
+            loss = model.loss(scores,data['sql_query'])
+
+            loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(),5 )
+            optimizer.step()
+
+        
+            epoch_loss += loss.item()
+        
+        
+        print('Loss {} ----- {}'.format(e,  epoch_loss / len(dataloader) ))
+
+    torch.save(model.state_dict(), 'saved_models/agg_model.pth')
+    print(model.state_dict())
+
+        
+
+
+
 # For testing purposes only Uncomment the code for testing
 
 
