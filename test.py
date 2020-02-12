@@ -19,8 +19,13 @@ hidden_dim = 100
 
 word_embed = load_word_emb('glove/glove.6B.50d.txt')
 
-sq = SQLDataset('train')
-sql_dataloader = DataLoader(sq,batch_size=batch_size,shuffle=True,num_workers=1,collate_fn=collate_fn)
+train , valid  = SQLDataset('train') , SQLDataset('dev')
+train_dataloader = DataLoader(train,batch_size=batch_size,shuffle=True,num_workers=1,collate_fn=collate_fn)
+
+valid_dataloader = DataLoader(valid,batch_size=batch_size,shuffle=True,num_workers=1,collate_fn=collate_fn)
+
+
+
 #g=next(iter(sql_dataloader))
 #print(g)
 
@@ -57,7 +62,7 @@ epochs = 5
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(),lr=0.01)
 
-train_model(model,epochs,optimizer,sql_dataloader)
+train_model(model,epochs,optimizer,train_dataloader,valid_dataloader)
 
 
 

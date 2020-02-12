@@ -56,15 +56,20 @@ class SQLDataset(Dataset):
 
 
 
-def train_model( model, n_epochs , optimizer,dataloader ):
+def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader ):
 
     model.train()
+
+    best_val = 2000
 
     for e in range(n_epochs):
 
         epoch_loss = 0
+        val_loss = 0 
 
-        for data in dataloader:
+        model.train()
+
+        for data in train_dataloader:
 
             model.zero_grad()
             optimizer.zero_grad()
@@ -80,10 +85,30 @@ def train_model( model, n_epochs , optimizer,dataloader ):
             epoch_loss += loss.item()
         
         
-        print('Loss {} ----- {}'.format(e,  epoch_loss / len(dataloader) ))
 
-    torch.save(model.state_dict(), 'saved_models/agg_model.pth')
-    print(model.state_dict())
+        model.eval()
+
+        for data in valid_dataloader:
+
+           scores = model(data['question_tokens'] , data['column_headers'] ,(True,None,None)) 
+           loss = model.loss( scores, data['sql_query'])
+
+           val_loss += loss.item()
+
+        epoch_valid_loss = val_loss/len(valid_dataloader) 
+        
+
+        print('  Epoch {} ----- Train Loss= {} , Valid loss= {}'.format(e+1,  epoch_loss / len(train_dataloader) , val_loss/len(valid_dataloader) ))
+
+        if epoch_valid_loss < best_val:
+            print('Validation Loss Decreased from {:.6f} -------->  {:.6f} '.format( best_val , epoch_valid_loss ))
+            print('Saving Model ')
+            torch.save(model.state_dict(), 'saved_models/agg_model.pth')
+            best_val = epoch_valid_loss
+
+
+    #torch.save(model.state_dict(), 'saved_models/agg_model.pth')
+    #print(model.state_dict())
 
         
 
