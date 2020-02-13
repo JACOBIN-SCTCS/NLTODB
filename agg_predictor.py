@@ -30,11 +30,11 @@ from net_utils import run_lstm
 
 class AggPredictor(nn.Module):
 
-    def __init__(self, embed_dim,hidden_dim,n_layers=1,dropout=0.2,bidirectional=False):
+    def __init__(self, embed_dim,hidden_dim,n_layers=1,dropout=0.3):
 
         super().__init__()
         
-        self.rnn = nn.LSTM(embed_dim,hidden_dim,n_layers,batch_first=True,dropout=dropout,bidirectional=bidirectional)
+        self.rnn = nn.LSTM(embed_dim,int(hidden_dim/2),n_layers,batch_first=True,dropout=dropout,bidirectional=True)
 
         self.attn = nn.Linear(hidden_dim,1)
        

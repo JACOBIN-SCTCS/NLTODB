@@ -39,7 +39,7 @@ class Model(nn.Module):
         batch_size = len(question)
         
         if pred_agg:
-            hidden = ( torch.zeros(1,batch_size,self.hidden_dim) , torch.zeros(1,batch_size,self.hidden_dim)  )
+            hidden = ( torch.zeros(2,batch_size,int(self.hidden_dim/2)) , torch.zeros(2,batch_size,int(self.hidden_dim/2))  )
             agg_score = self.agg_predictor.forward(embedding,length, hidden)
 
 
