@@ -1,11 +1,8 @@
-from utils import SQLDataset,collate_fn
 from wordembedding import WordEmbedding
-from torch.utils.data import Dataset,DataLoader
 from model import Model
 from extract_vocab import load_word_emb
 import torch
 import numpy as np
-from utils import test_model
 import torch.nn as nn
 import torch.optim as optim
 
@@ -22,19 +19,20 @@ n_epochs = 5
 
 word_embed = load_word_emb(filename)
 
-
-test =  SQLDataset('test')
-test_loader = DataLoader(test,batch_size=batch_size,shuffle=True,collate_fn=collate_fn)
-
-
 word_emb =  WordEmbedding(N_word,word_embed)
 
 
 model = Model(hidden_dim,N_word,word_emb)
 model.load_state_dict( torch.load('saved_models/agg_model.pth') )
 
+question = [ 'What is the total salary of employee 3'.split(' ') ,  'What is the total salary of employee 3'.split(' ')  ] 
 
-optimizer = optim.Adam(model.parameters(),lr=0.01)
 
-test_model(model,test_loader )
+columns =[ [ ['id'],['batch'],['name']]  ,   [ ['id'],['batch'],['name']]  ]
+
+scores = model( question, columns , (True,None,None) )
+
+out = torch.argmax(torch.exp(scores),dim=1)
+for i in range( len(out) -1 ):
+    print(model.agg_ops[out[i]])
 

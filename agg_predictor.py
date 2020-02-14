@@ -65,23 +65,6 @@ class AggPredictor(nn.Module):
         return agg_score
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 '''
 agg_predictor = AggPredictor(50,100)
 q = torch.randn(64,15,50)

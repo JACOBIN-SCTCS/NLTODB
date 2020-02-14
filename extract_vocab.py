@@ -4,19 +4,21 @@ import numpy as np
 import json
 
 
-N_WORD = 50
+#N_WORD = 50
 
 
 # Loads the dataset for use for creating the vocabulary out of question words and 
 # column names
-sql_data,table_data = load_dataset('train')
+#sql_data,table_data = load_dataset('train')
 
 
 
-
+'''
 word_to_idx = { 'UNK':0,'<BEG>':1,'<END>':2 }                               # Dictionary storing index of each word which is used as an index into an array containing embeddings 
 word_num = 3                                                                # Counter which stores the number of words in the vocabulary
 embs = [ np.zeros(N_WORD,dtype=np.float32) for _ in range(word_num) ]       # A numpy array which stores the embeddings of words so far . It is shape of a 2D matrix row correspond to each word
+'''
+
 
 
 def load_word_emb(filename,load_used=False):
@@ -43,7 +45,13 @@ def load_word_emb(filename,load_used=False):
             word_emb_val = np.load(f)
         return w2i,word_emb_val
 
-    
+
+
+
+
+
+'''
+
 word_emb = load_word_emb('glove/glove.6B.50d.txt')
 
 
@@ -67,5 +75,8 @@ with open('word2idx.json','w') as outf:
     json.dump(word_to_idx,outf)
 
 np.save( open('usedwordemb.npy','wb') , emb_array )
+
+'''
+
 
 

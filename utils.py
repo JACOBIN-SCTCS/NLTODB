@@ -2,8 +2,11 @@ import json
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
+import numpy as np
 from preprocessing import load_dataset,unicodeToAscii,splitColumnNames
 from torch.utils.data import Dataset,DataLoader
+
+
 
 
 def collate_fn(batch):
@@ -113,18 +116,24 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader 
         
 
 
+def test_model(model,test_loader):
 
-# For testing purposes only Uncomment the code for testing
+    model.eval()
+    correct = 0
 
+    for data in test_loader:
 
-'''sq = SQLDataset('train')
-sql_dataloader = DataLoader(sq,batch_size=5,num_workers=1,collate_fn=collate_fn)
-g=next(iter(sql_dataloader))
-print(g['column_headers'])
-'''
+        scores  = model(data['question_tokens'] , data['column_headers'], (True,None,None))
 
+        truth = torch.from_numpy(np.asarray(data['sql_query']))
+        out = torch.argmax( torch.exp(scores),dim=1)
 
+        res = torch.eq(truth,out)
 
+        for i in range( len(res)):
+            if res[i]:
+                correct+=1
 
+    print('Test Accuracy =====> {}'.format( (correct/len(test_loader.dataset))*100 ))
 
 
