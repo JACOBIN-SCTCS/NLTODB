@@ -9,7 +9,13 @@ Glove is used to convert ASCII to its corresponding word embeddings (vectors) fo
 
 Install dependencies 
 
-Run the script  test.py  ( Filename is in sense of testing new  functionality )
+For training the model set the hyperparameters in train.py
+and run the script as
+
+
+python train.py
+
+
 
 
 
