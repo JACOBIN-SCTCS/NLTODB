@@ -19,7 +19,8 @@ class Model(nn.Module):
 
         self.hidden_dim = hidden_dim
         self.embed_dim  = embed_dim
-
+        
+        
 
         self.agg_predictor = AggPredictor( embed_dim , hidden_dim ) 
 
@@ -43,16 +44,21 @@ class Model(nn.Module):
             agg_score = self.agg_predictor.forward(embedding,length, hidden)
 
 
-        return agg_score
+        return ( agg_score , )
 
         
    
-    def  loss(self, score, truth ):
-        loss = 0 
-        agg_truth = torch.from_numpy(np.asarray(truth))
-        agg_truth_var = Variable(agg_truth)
+    def  loss(self, score, truth , pred_entry ):
         
-        loss +=  self.ce(score,agg_truth_var)
+        pred_agg , pred_sel,pred_cond = pred_entry
+        
+        loss = 0 
+        if pred_agg:
+            
+            agg_truth = torch.from_numpy(np.asarray(truth[0]))
+            agg_truth_var = Variable(agg_truth)
+        
+            loss +=  self.ce(score[0],agg_truth_var)
 
         return loss
 

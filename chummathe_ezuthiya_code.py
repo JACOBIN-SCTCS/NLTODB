@@ -16,27 +16,28 @@ N_word = 50
 batch_size =10
 hidden_dim = 100
 
-word_embed = load_word_emb('glove/glove.6B.50d.txt')
+#word_embed = load_word_emb('glove/glove.6B.50d.txt')
 
 
 
+train =  SQLDataset('train')
 #train , valid   = SQLDataset('train') , SQLDataset('dev')
-#train_dataloader = DataLoader(train,batch_size=batch_size,shuffle=True,num_workers=1,collate_fn=collate_fn)
+train_dataloader = DataLoader(train,batch_size=batch_size,shuffle=True,num_workers=1,collate_fn=collate_fn)
 
 #valid_dataloader = DataLoader(valid,batch_size=batch_size,shuffle=True,num_workers=1,collate_fn=collate_fn)
 
 
 
-test = SQLDataset('test')
-test_dataloader = DataLoader(test,batch_size = batch_size, shuffle=True, num_workers=1,collate_fn=collate_fn)
+#test = SQLDataset('test')
+#test_dataloader = DataLoader(test,batch_size = batch_size, shuffle=True, num_workers=1,collate_fn=collate_fn)
 
 
-#g=next(iter(train_dataloader))
-#print(g)
+g=next(iter(train_dataloader))
+print(g)
 
 
 
-word_emb = WordEmbedding(N_word,word_embed)
+#word_emb = WordEmbedding(N_word,word_embed)
 
 
 
@@ -65,9 +66,9 @@ word_emb = WordEmbedding(N_word,word_embed)
 
 
 #agg_model = AggPredictor(N_word,hidden_dim)
-epochs = 5
+#epochs = 5
 
-criterion = nn.CrossEntropyLoss()
+#criterion = nn.CrossEntropyLoss()
 #optimizer = optim.Adam(model.parameters(),lr=0.01)
 
 #train_model(model,epochs,optimizer,train_dataloader,valid_dataloader)
@@ -75,12 +76,12 @@ criterion = nn.CrossEntropyLoss()
 
 
 
-testmodel = Model(hidden_dim,N_word,word_emb)
+#testmodel = Model(hidden_dim,N_word,word_emb)
 
-testmodel.load_state_dict( torch.load('saved_models/agg_model.pth') )
+#testmodel.load_state_dict( torch.load('saved_models/agg_model.pth') )
 
 
-test_model( testmodel,test_dataloader)
+#test_model( testmodel,test_dataloader)
 
 
 

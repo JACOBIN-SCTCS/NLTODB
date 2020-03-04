@@ -43,14 +43,14 @@ class SQLDataset(Dataset):
         question_tokens = unicodeToAscii(sql_item['question']).split(' ')
         column_headers = splitColumnNames( self.table_data[table_id]['header'] )
         column_num = len(self.table_data[table_id]['header'])
-        sql_query =  sql_item_sql["agg"]
-
+        agg       =  sql_item_sql['agg']
+                     
         return {
             'table_id': table_id,
-            'question_tokens' : question_tokens,
-            'column_headers' : column_headers,
-            'column_num'    : column_num,
-            'sql_query': sql_query
+            'question_tokens':  question_tokens,
+            'column_headers' :  column_headers,
+            'column_num'     :  column_num,
+            'agg'            :  agg,
         }
 
     
@@ -59,7 +59,7 @@ class SQLDataset(Dataset):
 
 
 
-def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader ):
+def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,train_entry ,checkpoint_name):
 
     model.train()
 
@@ -77,8 +77,9 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader 
             model.zero_grad()
             optimizer.zero_grad()
 
-            scores = model(data['question_tokens'] , data['column_headers'] ,(True,None,None))
-            loss = model.loss(scores,data['sql_query'])
+            scores = model(data['question_tokens'] , data['column_headers'] ,train_entry)
+
+            loss = model.loss(scores,(data['agg'],),train_entry)
 
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(),5 )
@@ -93,8 +94,8 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader 
 
         for data in valid_dataloader:
 
-           scores = model(data['question_tokens'] , data['column_headers'] ,(True,None,None)) 
-           loss = model.loss( scores, data['sql_query'])
+           scores = model(data['question_tokens'] , data['column_headers'] ,train_entry) 
+           loss = model.loss( scores, (data['agg'],), train_entry)
 
            val_loss += loss.item()
 
@@ -106,7 +107,7 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader 
         if epoch_valid_loss < best_val:
             print('Validation Loss Decreased from {:.6f} -------->  {:.6f} '.format( best_val , epoch_valid_loss ))
             print('Saving Model ')
-            torch.save(model.state_dict(), 'saved_models/agg_model.pth')
+            torch.save(model.state_dict(), checkpoint_name)
             best_val = epoch_valid_loss
 
 
@@ -125,8 +126,8 @@ def test_model(model,test_loader):
 
         scores  = model(data['question_tokens'] , data['column_headers'], (True,None,None))
 
-        truth = torch.from_numpy(np.asarray(data['sql_query']))
-        out = torch.argmax( torch.exp(scores),dim=1)
+        truth = torch.from_numpy(np.asarray(data['agg']))
+        out = torch.argmax( torch.exp(scores[0]),dim=1)
 
         res = torch.eq(truth,out)
 
