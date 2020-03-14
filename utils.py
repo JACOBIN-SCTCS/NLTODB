@@ -44,13 +44,15 @@ class SQLDataset(Dataset):
         column_headers = splitColumnNames( self.table_data[table_id]['header'] )
         column_num = len(self.table_data[table_id]['header'])
         agg       =  sql_item_sql['agg']
-                     
+        cond_num  =  len( sql_item_sql['conds'] ) 
+
         return {
             'table_id': table_id,
             'question_tokens':  question_tokens,
             'column_headers' :  column_headers,
             'column_num'     :  column_num,
             'agg'            :  agg,
+            'cond_num'       :  cond_num,
         }
 
     
