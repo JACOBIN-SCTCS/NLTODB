@@ -42,6 +42,7 @@ class CondPredictor(nn.Module):
 
         self.cond_col_att = nn.Linear(hidden_dim,hidden_dim)
 
+        
         self.cond_col_out_k = nn.Linear(hidden_dim,hidden_dim)
         self.cond_col_out_col = nn.Linear(hidden_dim,hidden_dim)
         self.cond_col_out = nn.Sequential( nn.Tanh(), nn.Linear(hidden_dim,1) )
@@ -53,8 +54,20 @@ class CondPredictor(nn.Module):
         #---------------------------------------------------------------
 
         
+        self.cond_op_name_enc = nn.LSTM(embed_dim, int(hidden_dim/2), num_layers = num_layers,batch_first=True,bidirectional=True)
+        self.cond_op_lstm     = nn.LSTM(embed_dim, int(hidden_dim/2), num_layers = num_layers,batch_first=True,bidirectional=True)
+        self.cond_op_att      = nn.Linear(hidden_dim, hidden_dim)
+        self.cond_op_out_k    = nn.Linear(hidden_dim, hidden_dim)
+        self.cond_op_out_col  = nn.Linear(hidden_dim, hidden_dim)
 
+        self.cond_op_out      = nn.Sequential( nn.Linear(hidden_dim , hidden_dim ), nn.Tanh()  , nn.Linear(hidden_dim,3))
 
+        
+        #---------------------------------------------------------------
+
+        # Layers for the prediction of the values corresponding to each WHERE clause
+
+        #---------------------------------------------------------------
 
 
 
@@ -165,9 +178,35 @@ class CondPredictor(nn.Module):
         # chosen col_gt contains the indexes of column as a list as each element of chosen_col_gt
 
 
+        e_cond_col , _  = column_encode( self.cond_op_name_enc, col_inp_var,name_length,col_length )
 
+        col_emb = []
 
+        for i in range(batch_size):
+            
+            cur_col_emb = torch.stack( [e_cond_col[b,x] for x in chosen_col_gt[b]]
+                    + [ torch.zeros((hidden_dim))]*( 4 - len(chosen_col_gt[b])
+                ))
+            # 4 is chosen as the the maximum number of condtions restricted is 4
 
+            col_emb.append(cur_col_emb)
+
+        col_emb = torch.stack(col_emb)  # Convert the array  to  a torch tensor by stacking along the elements
+        
+        h_op_enc , _  = run_lstm(self.cond_op_lstm , q ,q_len)
+
+        # Column attention
+        
+        
+        op_att_val = torch.matmul( self.cond_op_att(h_op_enc).unsqueeze(1) , col_emb.unsqueeze(3) ).squeeze()
+        
+        for  i ,num in enumerate(q_len):
+            if num<max_x_len : 
+                op_att_val [ i ,: , num:] = -100
+        op_att = self.softmax( op_att_val.view(batch_size*4,-1) ).view(batch_size, 4,-1 ) 
+    
+
+        
 
         return cond_col_score
 
