@@ -173,7 +173,7 @@ class CondPredictor(nn.Module):
         cond_nums = np.argmax( cond_num_score.data.cpu().numpy() , axis=1  )    # Get the number of conditions corresponding to each question
 
         col_scores = cond_col_score.data.cpu().numpy()
-        chosen_col_gt = [  list(np.argsort(-col_scores[b]) ) [ : cond_nums[b]]) for b in range(len(cond_nums)) ] 
+        chosen_col_gt = [  list(np.argsort(-col_scores[b])  [ : cond_nums[b]]) for b in range(len(cond_nums)) ] 
 
         # chosen col_gt contains the indexes of column as a list as each element of chosen_col_gt
 
@@ -184,8 +184,8 @@ class CondPredictor(nn.Module):
 
         for i in range(batch_size):
             
-            cur_col_emb = torch.stack( [e_cond_col[b,x] for x in chosen_col_gt[b]]
-                    + [ torch.zeros((hidden_dim))]*( 4 - len(chosen_col_gt[b])
+            cur_col_emb = torch.stack( [e_cond_col[i,x] for x in chosen_col_gt[i]]
+                    + [e_cond_col[i,0]]*( 4 - len(chosen_col_gt[i])
                 ))
             # 4 is chosen as the the maximum number of condtions restricted is 4
 
@@ -204,10 +204,15 @@ class CondPredictor(nn.Module):
             if num<max_x_len : 
                 op_att_val [ i ,: , num:] = -100
         op_att = self.softmax( op_att_val.view(batch_size*4,-1) ).view(batch_size, 4,-1 ) 
-    
+        k_cond_op = ( h_op_enc.unsqueeze(1) * op_att.unsqueeze(3)).sum(2)
+
+
+        cond_op_score = self.cond_op_out( self.cond_op_out_k(k_cond_op) + self.cond_op_out_col(col_emb) ).squeeze()
+
+
 
         
 
-        return cond_col_score
+        return cond_op_score ,cond_nums
 
        
