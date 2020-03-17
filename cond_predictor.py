@@ -2,17 +2,18 @@ import torch
 import torch.nn as nn
 from net_utils import column_encode,run_lstm
 import numpy as np
+from torch.autograd import Variable
 
 
 class CondPredictor(nn.Module):
 
-    def __init__(self, embed_dim,hidden_dim, num_layers=1):
+    def __init__(self, embed_dim,hidden_dim, num_layers=1,max_tok_num=200):
 
         super().__init__()
         
         self.embed_dim = embed_dim 
         self.hidden_dim = hidden_dim
-
+        self.max_tok_num = max_tok_num
 
 
         # Layers for the purpose of predicting the number of conditions
@@ -70,6 +71,23 @@ class CondPredictor(nn.Module):
         #---------------------------------------------------------------
 
 
+        self.cond_str_lstm = nn.LSTM(embed_dim,int(hidden_dim/2) ,num_layers=num_layers,batch_first=True, bidirectional=True )
+
+        self.cond_str_decoder = nn.LSTM(max_tok_num, hidden_dim,num_layers=num_layers,
+                    batch_first=True,
+                )
+
+        self.cond_str_name_enc = nn.LSTM(embed_dim,int(hidden_dim/2) ,num_layers=num_layers,batch_first=True, bidirectional=True )
+
+
+        self.cond_str_out_g = nn.Linear(hidden_dim,hidden_dim)
+        self.cond_str_out_h = nn.Linear(hidden_dim,hidden_dim)
+        self.cond_str_out_col = nn.Linear(hidden_dim,hidden_dim)
+
+        self.cond_str_out = nn.Sequential( nn.Tanh(), nn.Linear(hidden_dim,1) )
+
+
+        #--------------------------------------------------------------
 
 
         self.col2hid1       = nn.Linear(hidden_dim,2*hidden_dim)
@@ -78,6 +96,10 @@ class CondPredictor(nn.Module):
 
 
         self.softmax = nn.Softmax(dim=1)
+
+
+
+
 
     def forward(self,q,q_len,col_inp_var, name_length,col_length):
 
@@ -209,10 +231,102 @@ class CondPredictor(nn.Module):
 
         cond_op_score = self.cond_op_out( self.cond_op_out_k(k_cond_op) + self.cond_op_out_col(col_emb) ).squeeze()
 
+        
+        #-------------------------------------------------------------------------
+
+        # Portion for predicting the values corresponding to each condition using
+        # a Pointer Network
+
+        #------------------------------------------------------------------------
+
+        h_str_enc , _ = run_lstm(self.cond_str_lstm, q ,q_len)
+        e_cond_col, _ = column_encode( self.cond_str_name_enc, col_inp_var,name_length,col_length  )
+
+        col_emb = [] 
+        for b in range(batch_size):
+
+            cur_col_emb = torch.stack( 
+                        [ e_cond_col[b,x] for x in chosen_col_gt[b] ] +
+                        [ e_cond_col[b,0]]*( 4- len(chosen_col_gt[b]) )
+                        
+                    )
+            col_emb.append(cur_col_emb)
+
+        col_emb = torch.stack(col_emb)
+
+        
+
+        ####### Ground truth condtions
+
+        h_ext = h_str_enc.unsqueeze(1).unsqueeze(1)
+        col_ext = col_emb.unsqueeze(2).unsqueeze(2)
+
+        scores = []
+
+        t = 0 
+
+        init_inp = np.zeros( (batch_size *4 , 1, self.max_tok_num) , dtype=np.float32 )
+        init_inp[:,0,0] = 1
+
+        ## CUDA Here below
+        cur_inp  = Variable(torch.from_numpy(init_inp))
+
+        cur_h = None
+
+        while t < 50:
+
+            if cur_h:
+                g_str_s_flat , cur_h = self.cond_str_decoder(cur_inp,cur_h)
+            else:
+                g_str_s_flat , cur_h = self.cond_str_decoder(cur_inp)
+
+            g_str_s = g_str_s_flat.view(batch_size,4,1,self.hidden_dim)
+            g_ext = g_str_s.unsqueeze(3)
+
+
+            # Compute the score
+
+            cur_cond_str_score = self.cond_str_out (
+            
+                    self.cond_str_out_h(h_ext) + 
+                    self.cond_str_out_g(g_ext) +
+                    self.cond_str_out_col(col_ext)
+
+            ).squeeze()
+
+
+            for i ,num in enumerate(q_len):
+                if num < max_x_len:
+                    cur_cond_str_score[ b , : ,num:] = -100
+
+            scores.append(cur_cond_str_score)
+
+
+
+            _ , ans_tok_var = cur_cond_str_score.view( batch_size*4,max_x_len).max(1)
+            ans_tok = ans_tok_var.data.cpu()
+
+            data = torch.zeros(batch_size*4 , self.max_tok_num).scatter_(
+                        1, ans_tok.unsqueeze(1) , 1
+                    )   
+
+
+            # CUDA below
+            cur_inp = Variable(data)
+            cur_inp = cur_inp.unsqueeze(1)
+            t+=1
+
+
+        cond_str_score = torch.stack(scores,dim=2)
+
+        for i , num in enumerate(q_len):
+            if num < max_x_len:
+                cond_str_score[b,:,:,num:] = -100
+
 
 
         
 
-        return cond_op_score ,cond_nums
+        return cond_str_score
 
        
