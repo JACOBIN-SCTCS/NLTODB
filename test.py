@@ -12,13 +12,16 @@ import torch.optim as optim
 
 
 filename= 'glove/glove.6B.50d.txt'
-checkpoint_name = 'saved_models/agg_model.pth'
+#checkpoint_name = 'saved_models/agg_model.pth'
 
+
+test_entry = (True,None,None)
 
 N_word= 50
 batch_size = 10
 hidden_dim = 100
 n_epochs = 5
+
 
 
 
@@ -33,10 +36,10 @@ word_emb =  WordEmbedding(N_word,word_embed)
 
 
 model = Model(hidden_dim,N_word,word_emb)
-model.load_state_dict( torch.load(checkpoint_name) )
+#model.agg_predictor.load_state_dict( torch.load('saved_model/agg_predictor.pth') )
 
 
 optimizer = optim.Adam(model.parameters(),lr=0.01)
 
-test_model(model,test_loader )
+test_model(model,test_loader,test_entry )
 

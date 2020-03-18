@@ -203,24 +203,40 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
         
 
 
-def test_model(model,test_loader):
+def test_model(model,test_loader , test_entry):
+
+    test_agg , test_sel  , test_cond = test_entry
+    
+    if test_agg:
+        model.agg_predictor.load_state_dict( torch.load('saved_models/agg_predictor.pth')  )
+
+    # LOADING OF STATE DICTS GOES DOWN HERE
+
+
 
     model.eval()
-    correct = 0
+    
+    agg_correct = 0
+    sel_correct = 0 
+    cond_correct = 0
+
+
 
     for data in test_loader:
-
+        
         scores  = model(data['question_tokens'] , data['column_headers'], (True,None,None))
+        
+        if test_agg:
 
-        truth = torch.from_numpy(np.asarray(data['agg']))
-        out = torch.argmax( torch.exp(scores[0]),dim=1)
+            truth = torch.from_numpy(np.asarray(data['agg']))
+            out = torch.argmax( torch.exp(scores[0]),dim=1)
 
-        res = torch.eq(truth,out)
+            res = torch.eq(truth,out)
 
-        for i in range( len(res)):
-            if res[i]:
-                correct+=1
+            for i in range( len(res)):
+                if res[i]:
+                    agg_correct+=1
 
-    print('Test Accuracy =====> {}'.format( (correct/len(test_loader.dataset))*100 ))
+    print('\nAggregation Operator Test Accuracy =====> {}\n'.format( (agg_correct/len(test_loader.dataset))*100 ))
 
 
