@@ -14,6 +14,31 @@ def collate_fn(batch):
     return {key: [d[key] for d in batch] for key in batch[0]}
 
 
+# Generate the ground truth WHERE clause which contains all the strings used 
+# corresponding to each condition
+
+def generate_gt_where_seq( question_toks ,conds ):
+
+    cur_values = []
+    all_toks = ['<BEG>'] + question_toks + ['<END>']
+    if len(conds) ==0:
+        return cur_values
+
+    for item in conds:
+        
+        split_tokens = unicodeToAscii(str(item[2])).split(' ')
+        this_str = ['<BEG>'] + split_tokens + ['<END>']
+
+        cur_seq = [ 
+                    all_toks.index(s) if s in all_toks else 0
+                    for s in this_str   
+                  ]
+        cur_values.append(cur_seq )
+
+    return cur_values
+
+
+
 
 # Using a custom dataset class for loading the data
 class SQLDataset(Dataset):
@@ -45,6 +70,8 @@ class SQLDataset(Dataset):
         column_num = len(self.table_data[table_id]['header'])
         agg       =  sql_item_sql['agg']
         cond_num  =  len( sql_item_sql['conds'] ) 
+        gt_where  = generate_gt_where_seq( question_tokens, sql_item_sql['conds']  )
+        
 
         return {
             'table_id': table_id,
@@ -53,6 +80,7 @@ class SQLDataset(Dataset):
             'column_num'     :  column_num,
             'agg'            :  agg,
             'cond_num'       :  cond_num,
+            'gt_where'       :  gt_where,
         }
 
     
