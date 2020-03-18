@@ -63,5 +63,21 @@ class Model(nn.Module):
         return loss
 
     
+    def validation_loss(self,score,truth , pred_entry ):
+        
+        pred_agg , pred_sel , pred_cond = pred_entry
+        
+        agg_loss = 0.0
+        sel_loss = 0.0
+        cond_loss= 0.0
+
+        if pred_agg :
+            agg_truth = torch.from_numpy( np.asarray( truth[0] ) )
+            agg_truth_var = Variable(agg_truth)
+
+            agg_loss = self.ce( score[0] , agg_truth_var )
+
+        return (agg_loss,sel_loss,cond_loss)
+
 
        

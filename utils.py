@@ -89,16 +89,27 @@ class SQLDataset(Dataset):
 
 
 
-def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,train_entry ,checkpoint_name):
+def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,train_entry):
 
     model.train()
 
-    best_val = 2000
+    #best_val = 2000
+    
+    best_agg_val = 200
+    best_sel_val = 200
+    best_cond_val = 200
+
+    pred_agg , pred_sel , pred_cond = train_entry
 
     for e in range(n_epochs):
 
         epoch_loss = 0
-        val_loss = 0 
+        
+        agg_val_loss = 0 
+        sel_val_loss = 0
+        cond_val_loss = 0
+
+
 
         model.train()
 
@@ -125,20 +136,65 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
         for data in valid_dataloader:
 
            scores = model(data['question_tokens'] , data['column_headers'] ,train_entry) 
-           loss = model.loss( scores, (data['agg'],), train_entry)
+           loss = model.validation_loss( scores, (data['agg'],), train_entry)
+        
+           agg_loss , sel_loss , cond_loss = loss
 
-           val_loss += loss.item()
 
-        epoch_valid_loss = val_loss/len(valid_dataloader) 
+           if pred_agg:
+               agg_val_loss += agg_loss.item()
+            
+           if pred_sel:
+               sel_val_loss += sel_loss.item()
+
+           if pred_cond:
+               cond_val_loss += cond_loss.item()
+
+            
+    
+            #val_loss += loss.item()
+        
+        print('------------------------------  Epoch {} ---------------------------------\n'.format(e+1))
+        print('Training loss ---------->  {}\n'.format( epoch_loss/len(train_dataloader)  )    )
+        print('-------------------------------------------------------------------------\n')
+
+
+        if pred_agg:
+
+            
+            epoch_agg_valid_loss = agg_val_loss/len(valid_dataloader) 
+            print('\n Aggregation Model Validation Loss----------------> {}'.format(epoch_agg_valid_loss))
+            if epoch_agg_valid_loss < best_agg_val:
+                print('\nValidation loss decreased from {:0.6f} ------->  {:.6f}'.format(best_agg_val,epoch_agg_valid_loss) )
+                print('\t Saving Model\n')
+                torch.save(model.agg_predictor.state_dict() , 'saved_models/agg_predictor.pth')
+                best_agg_val = epoch_agg_valid_loss
+
+                
+
+        if pred_sel:
+            epoch_sel_valid_loss = sel_val_loss/len(valid_dataloader)
+        
+        
+        if pred_cond:
+
+            epoch_cond_valid_loss = cond_val_loss / len(valid_dataloader)
+
+
+
+        print('\n----------------------------------------------------------------------------------------------\n')
+
+        #print('  Epoch {} ----- Train Loss= {} , Valid loss= {}'.format(e+1,  epoch_loss / len(train_dataloader) , val_loss/len(valid_dataloader) ))
         
 
-        print('  Epoch {} ----- Train Loss= {} , Valid loss= {}'.format(e+1,  epoch_loss / len(train_dataloader) , val_loss/len(valid_dataloader) ))
 
+        '''
         if epoch_valid_loss < best_val:
             print('Validation Loss Decreased from {:.6f} -------->  {:.6f} '.format( best_val , epoch_valid_loss ))
             print('Saving Model ')
             torch.save(model.state_dict(), checkpoint_name)
             best_val = epoch_valid_loss
+        '''
 
 
     #torch.save(model.state_dict(), 'saved_models/agg_model.pth')
