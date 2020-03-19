@@ -69,18 +69,26 @@ class SQLDataset(Dataset):
         column_headers = splitColumnNames( self.table_data[table_id]['header'] )
         column_num = len(self.table_data[table_id]['header'])
         agg       =  sql_item_sql['agg']
+        sel       =  sql_item_sql['sel']
         cond_num  =  len( sql_item_sql['conds'] ) 
+        gt_cond   =  sql_item_sql['conds']
         gt_where  = generate_gt_where_seq( question_tokens, sql_item_sql['conds']  )
+        
+        where_col = [ x[0] for x in gt_cond ] 
         
 
         return {
+
             'table_id': table_id,
             'question_tokens':  question_tokens,
             'column_headers' :  column_headers,
             'column_num'     :  column_num,
             'agg'            :  agg,
+            'sel'            :  sel,
             'cond_num'       :  cond_num,
             'gt_where'       :  gt_where,
+            'gt_cond'        :  gt_cond,
+            'where_col'      :  where_col,
         }
 
     

@@ -16,6 +16,7 @@ class Model(nn.Module):
 
 
         self.agg_ops =  ['', 'MAX', 'MIN', 'COUNT', 'SUM', 'AVG']
+        
 
         self.hidden_dim = hidden_dim
         self.embed_dim  = embed_dim
@@ -43,7 +44,7 @@ class Model(nn.Module):
             hidden = ( torch.zeros(2,batch_size,int(self.hidden_dim/2)) , torch.zeros(2,batch_size,int(self.hidden_dim/2))  )
             agg_score = self.agg_predictor.forward(embedding,length, hidden)
 
-
+        
         return ( agg_score , )
 
         
@@ -59,6 +60,9 @@ class Model(nn.Module):
             agg_truth_var = Variable(agg_truth)
         
             loss +=  self.ce(score[0],agg_truth_var)
+
+
+        
 
         return loss
 
@@ -76,6 +80,8 @@ class Model(nn.Module):
             agg_truth_var = Variable(agg_truth)
 
             agg_loss = self.ce( score[0] , agg_truth_var )
+
+
 
         return (agg_loss,sel_loss,cond_loss)
 

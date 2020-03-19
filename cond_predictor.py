@@ -97,11 +97,51 @@ class CondPredictor(nn.Module):
 
         self.softmax = nn.Softmax(dim=1)
 
+    
+    # Used for supporting the training process by supplying the  condition 
+    # strings corresponding to each query during training
+
+    def gen_gt_batch(self,gt_where):
+
+        batch_size = len(gt_where)
+        max_len =  max( [  max(  [ len(tok) for tok in tok_seq] +[0] )
+
+                    for tok_seq in gt_where]) - 1
+
+        if max_len < 1:
+            max_len = 1
+
+        ret_array = np.zeros((batch_size,4,max_len,self.max_tok_num), dtype=np.float32 )
+
+        ret_len = np.zeros((batch_size , 4))
+
+        for b,tok_seq in enumerate(gt_where):
+
+            idx =0
+            for idx,one_tok_seq in enumerate(tok_seq):
+                out_one_tok_seq = one_tok_seq[:-1] # Get everything except thee last
+                ret_len[b,idx] = len(out_one_tok_seq)
+                for t , tok_id in enumerate(out_one_tok_seq):
+
+                    ret_array[b,idx,t,tok_id] =1 
+
+            if idx< 3:
+                ret_array[b,idx+1: , 0,1] = 1
+                ret_len[b,idx+1:]         = 1
+
+        ret_inp = torch.from_numpy(ret_array)
+        # cuda ret_inp down here
+
+        ret_inp_var = Variable(ret_inp)
+
+        return ret_inp_var , ret_len  # ( batch_size ,<conditionid> , max_len,max_tok_num )
 
 
 
 
-    def forward(self,q,q_len,col_inp_var, name_length,col_length):
+
+
+    def forward(self,q,q_len,col_inp_var, name_length,col_length,gt_cond=None,gt_where=None):
 
 
 
@@ -192,10 +232,19 @@ class CondPredictor(nn.Module):
         
         chosen_col_gt = [] 
 
-        cond_nums = np.argmax( cond_num_score.data.cpu().numpy() , axis=1  )    # Get the number of conditions corresponding to each question
+        if gt_cond is None:
 
-        col_scores = cond_col_score.data.cpu().numpy()
-        chosen_col_gt = [  list(np.argsort(-col_scores[b])  [ : cond_nums[b]]) for b in range(len(cond_nums)) ] 
+
+            cond_nums = np.argmax( cond_num_score.data.cpu().numpy() , axis=1  )    # Get the number of conditions corresponding to each question
+
+            col_scores = cond_col_score.data.cpu().numpy()
+            chosen_col_gt = [  list(np.argsort(-col_scores[b])  [ : cond_nums[b]]) for b in range(len(cond_nums)) ] 
+
+        else : 
+
+            chosen_col_gt = gt_cond
+
+
 
         # chosen col_gt contains the indexes of column as a list as each element of chosen_col_gt
 
@@ -257,76 +306,106 @@ class CondPredictor(nn.Module):
         
 
         ####### Ground truth condtions
-
-        h_ext = h_str_enc.unsqueeze(1).unsqueeze(1)
-        col_ext = col_emb.unsqueeze(2).unsqueeze(2)
-
-        scores = []
-
-        t = 0 
-
-        init_inp = np.zeros( (batch_size *4 , 1, self.max_tok_num) , dtype=np.float32 )
-        init_inp[:,0,0] = 1
-
-        ## CUDA Here below
-        cur_inp  = Variable(torch.from_numpy(init_inp))
-
-        cur_h = None
-
-        while t < 50:
-
-            if cur_h:
-                g_str_s_flat , cur_h = self.cond_str_decoder(cur_inp,cur_h)
-            else:
-                g_str_s_flat , cur_h = self.cond_str_decoder(cur_inp)
-
-            g_str_s = g_str_s_flat.view(batch_size,4,1,self.hidden_dim)
-            g_ext = g_str_s.unsqueeze(3)
-
-
-            # Compute the score
-
-            cur_cond_str_score = self.cond_str_out (
+        
+        if gt_where is not None:
             
-                    self.cond_str_out_h(h_ext) + 
-                    self.cond_str_out_g(g_ext) +
-                    self.cond_str_out_col(col_ext)
+            gt_tok_seq , gt_tok_len = self.gen_gt_batch(gt_where)
+            g_str_s_flat ,_  =  self.cond_str_decoder(
+                        gt_tok_seq.view(batch_size*4,-1,self.max_tok_num)
+                    )
 
-            ).squeeze()
+            g_str_s = g_str_s_flat.contiguous().view(batch_size,4,-1,self.hidden_dim  )   #Create new tensor
+
+            h_ext = h_str_enc.unsqueeze(1).unsqueeze(1)
+            g_ext = g_str_s.unsqueeze(3)
+            col_ext = col_emb.unsqueeze(2).unsqueeze(2)
 
 
-            for i ,num in enumerate(q_len):
+            cond_str_score = self.cond_str_out(
+                    
+                        self.cond_str_out_g(g_ext) + 
+                        self.cond_str_out_h(h_ext) +
+                        self.cond_str_out_col(col_ext)
+                        
+                    ).squeeze()
+        
+            for i , num in enumerate(q_len ):
+
                 if num < max_x_len:
-                    cur_cond_str_score[ b , : ,num:] = -100
+                    cond_str_score[b,:,:,num:] = -100
 
-            scores.append(cur_cond_str_score)
-
-
-
-            _ , ans_tok_var = cur_cond_str_score.view( batch_size*4,max_x_len).max(1)
-            ans_tok = ans_tok_var.data.cpu()
-
-            data = torch.zeros(batch_size*4 , self.max_tok_num).scatter_(
-                        1, ans_tok.unsqueeze(1) , 1
-                    )   
+        else:
 
 
-            # CUDA below
-            cur_inp = Variable(data)
-            cur_inp = cur_inp.unsqueeze(1)
-            t+=1
+            h_ext = h_str_enc.unsqueeze(1).unsqueeze(1)
+            col_ext = col_emb.unsqueeze(2).unsqueeze(2)
+
+            scores = []
+
+            t = 0 
+
+            init_inp = np.zeros( (batch_size *4 , 1, self.max_tok_num) , dtype=np.float32 )
+            init_inp[:,0,0] = 1
+
+            ## CUDA Here below
+            cur_inp  = Variable(torch.from_numpy(init_inp))
+
+            cur_h = None
+
+            while t < 50:
+
+                if cur_h:
+                    g_str_s_flat , cur_h = self.cond_str_decoder(cur_inp,cur_h)
+                else:
+                    g_str_s_flat , cur_h = self.cond_str_decoder(cur_inp)
+
+                g_str_s = g_str_s_flat.view(batch_size,4,1,self.hidden_dim)
+                g_ext = g_str_s.unsqueeze(3)
 
 
-        cond_str_score = torch.stack(scores,dim=2)
+                # Compute the score
 
-        for i , num in enumerate(q_len):
-            if num < max_x_len:
-                cond_str_score[b,:,:,num:] = -100
+                cur_cond_str_score = self.cond_str_out (
+            
+                        self.cond_str_out_h(h_ext) + 
+                        self.cond_str_out_g(g_ext) +
+                        self.cond_str_out_col(col_ext)
+
+                ).squeeze()
+
+
+                for i ,num in enumerate(q_len):
+                    if num < max_x_len:
+                        cur_cond_str_score[ b , : ,num:] = -100
+
+                scores.append(cur_cond_str_score)
+
+
+
+                _ , ans_tok_var = cur_cond_str_score.view( batch_size*4,max_x_len).max(1)
+                ans_tok = ans_tok_var.data.cpu()
+
+                data = torch.zeros(batch_size*4 , self.max_tok_num).scatter_(
+                            1, ans_tok.unsqueeze(1) , 1
+                 )   
+
+
+                # CUDA below
+                cur_inp = Variable(data)
+                cur_inp = cur_inp.unsqueeze(1)
+                t+=1
+
+
+            cond_str_score = torch.stack(scores,dim=2)
+
+            for i , num in enumerate(q_len):
+                if num < max_x_len:
+                    cond_str_score[b,:,:,num:] = -100
 
 
 
         
 
-        return cond_str_score
+        return cond_num_score,cond_col_score,cond_op_score,cond_str_score
 
        
