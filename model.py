@@ -102,7 +102,7 @@ class Model(nn.Module):
             for b in range(batch_size):
                 if len( truth[3][b]  ) > 0:
 
-                    truth_prob[b][ list( truth_prob[3][b]) ] =1.0
+                    truth_prob[b][ list( truth[3][b]) ] =1
 
             #CUDA cond_col_truth_var
             cond_col_truth_var = Variable(torch.from_numpy(truth_prob))

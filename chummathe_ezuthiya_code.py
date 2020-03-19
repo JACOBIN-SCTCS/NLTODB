@@ -49,8 +49,8 @@ agg , sel , cond = mod(g['question_tokens'] , g['column_headers'], train_entry ,
 #print(cond[2].shape)
 #print(cond[3].shape)
 
-#loss = mod.loss((agg,sel,cond), (g['agg'] , None,g['cond_num']) , train_entry )
-#print(loss)
+loss = mod.loss((agg,sel,cond), (g['agg'] , None,g['cond_num'],g['where_col']) , train_entry )
+print(loss)
 
 
 
@@ -64,7 +64,7 @@ agg , sel , cond = mod(g['question_tokens'] , g['column_headers'], train_entry ,
 #loss = nn.CrossEntropyLoss()(cond[0],where_col)
 #print(loss)
 
-
+'''
 gt_col = g['where_col']
 
 T  = len( cond[1][0] )
@@ -83,9 +83,13 @@ bce_loss = -torch.mean(
         )
 print(bce_loss)
 
+
+
 weight_tensor = torch.tensor([ float(3.0) for _ in range(T)])
 alter_bc_loss = nn.BCELoss(weight_tensor)(cond_col_prob,cond_col_truth_var)
 print(alter_bc_loss)
+'''
+
 
 
 #embeddings,length = word_emb.gen_x_batch(g['question_tokens'],g['column_headers'])
