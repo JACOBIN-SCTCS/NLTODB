@@ -9,14 +9,14 @@ import torch.optim as optim
 import torch
 import numpy as np
 from utils import train_model,test_model
-
-
+from model import Model
+from torch.autograd import Variable
 
 N_word = 50 
 batch_size =10
 hidden_dim = 100
 
-#word_embed = load_word_emb('glove/glove.6B.50d.txt')
+word_embed = load_word_emb('glove/glove.6B.50d.txt')
 
 
 
@@ -37,8 +37,55 @@ print(g)
 
 
 
-#word_emb = WordEmbedding(N_word,word_embed)
+word_emb = WordEmbedding(N_word,word_embed)
 
+mod = Model(hidden_dim,N_word,word_emb)
+train_entry =(None,None,True)
+
+agg , sel , cond = mod(g['question_tokens'] , g['column_headers'], train_entry , g['where_col'], g['gt_where'] )
+
+#print(cond[0].shape)
+#print(cond[1].shape)
+#print(cond[2].shape)
+#print(cond[3].shape)
+
+#loss = mod.loss((agg,sel,cond), (g['agg'] , None,g['cond_num']) , train_entry )
+#print(loss)
+
+
+
+
+
+
+
+#where_col = g['cond_num']
+#print(where_col)
+#where_col = Variable(torch.from_numpy(np.array(where_col)))
+#loss = nn.CrossEntropyLoss()(cond[0],where_col)
+#print(loss)
+
+
+gt_col = g['where_col']
+
+T  = len( cond[1][0] )
+truth_prob = np.zeros((batch_size,T),dtype=np.float32)
+for b in range(batch_size):
+    if len(gt_col[b]) >0:
+        truth_prob[b][ list( gt_col[b] ) ]  =1 
+
+
+cond_col_truth_var = Variable(torch.from_numpy(truth_prob))
+cond_col_prob = nn.Sigmoid()(cond[1])
+bce_loss = -torch.mean(
+            3*(cond_col_truth_var * torch.log(cond_col_prob+1e-10) ) +
+            (1 - cond_col_truth_var)* torch.log( 1- cond_col_prob+1e-10  )
+        
+        )
+print(bce_loss)
+
+weight_tensor = torch.tensor([ float(3.0) for _ in range(T)])
+alter_bc_loss = nn.BCELoss(weight_tensor)(cond_col_prob,cond_col_truth_var)
+print(alter_bc_loss)
 
 
 #embeddings,length = word_emb.gen_x_batch(g['question_tokens'],g['column_headers'])

@@ -75,7 +75,7 @@ class SQLDataset(Dataset):
         gt_where  = generate_gt_where_seq( question_tokens, sql_item_sql['conds']  )
         
         where_col = [ x[0] for x in gt_cond ] 
-        
+        where_op  = [ x[1] for x in gt_cond ]        
 
         return {
 
@@ -89,6 +89,7 @@ class SQLDataset(Dataset):
             'gt_where'       :  gt_where,
             'gt_cond'        :  gt_cond,
             'where_col'      :  where_col,
+            'where_op'       :  where_op,
         }
 
     
@@ -126,9 +127,15 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
             model.zero_grad()
             optimizer.zero_grad()
 
-            scores = model(data['question_tokens'] , data['column_headers'] ,train_entry)
+            scores = model(data['question_tokens'] , data['column_headers'] ,train_entry , data['where_col'] ,
+                        data['gt_where']
+                    )
 
-            loss = model.loss(scores,(data['agg'],),train_entry)
+            loss = model.loss(scores,
+                    
+                        ( data['agg'], None , data['cond_num'] , data['where_col'] ),
+                         train_entry
+                     )
 
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(),5 )
@@ -143,8 +150,11 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
         for data in valid_dataloader:
 
-           scores = model(data['question_tokens'] , data['column_headers'] ,train_entry) 
-           loss = model.validation_loss( scores, (data['agg'],), train_entry)
+           scores = model(data['question_tokens'] , data['column_headers'] ,train_entry,data['where_col'],data['gt_where'] ) 
+           loss = model.validation_loss( scores,
+                   (data['agg'], None,data['cond_num'] ,data['where_col'] )
+                   
+                   , train_entry)
         
            agg_loss , sel_loss , cond_loss = loss
 
@@ -164,7 +174,7 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
         
         print('------------------------------  Epoch {} ---------------------------------\n'.format(e+1))
         print('Training loss ---------->  {}\n'.format( epoch_loss/len(train_dataloader)  )    )
-        print('-------------------------------------------------------------------------\n')
+        print('--------------------------------------------------------------------------\n')
 
 
         if pred_agg:
@@ -190,7 +200,7 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
 
 
-        print('\n----------------------------------------------------------------------------------------------\n')
+        print('\n------------------------------------------------------------------------\n')
 
         #print('  Epoch {} ----- Train Loss= {} , Valid loss= {}'.format(e+1,  epoch_loss / len(train_dataloader) , val_loss/len(valid_dataloader) ))
         
@@ -201,6 +211,7 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
             print('Validation Loss Decreased from {:.6f} -------->  {:.6f} '.format( best_val , epoch_valid_loss ))
             print('Saving Model ')
             torch.save(model.state_dict(), checkpoint_name)
+
             best_val = epoch_valid_loss
         '''
 

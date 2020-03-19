@@ -34,7 +34,7 @@ class AggPredictor(nn.Module):
 
         super().__init__()
         
-        self.rnn = nn.LSTM(embed_dim,int(hidden_dim/2),n_layers,batch_first=True,bidirectional=True)
+        self.rnn = nn.LSTM(embed_dim,int(hidden_dim/2),n_layers,batch_first=True,dropout=0.3,bidirectional=True)
 
         self.attn = nn.Linear(hidden_dim,1)
        
