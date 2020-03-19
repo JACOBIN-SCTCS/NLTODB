@@ -33,7 +33,7 @@ train_dataloader = DataLoader(train,batch_size=batch_size,shuffle=True,num_worke
 
 
 g=next(iter(train_dataloader))
-print(g)
+#print(g)
 
 
 
@@ -49,13 +49,54 @@ agg , sel , cond = mod(g['question_tokens'] , g['column_headers'], train_entry ,
 #print(cond[2].shape)
 #print(cond[3].shape)
 
-loss = mod.loss((agg,sel,cond), (g['agg'] , None,g['cond_num'],g['where_col']) , train_entry )
+loss = mod.validation_loss((agg,sel,cond), (g['agg'] , None,g['cond_num'],g['where_col'],g['where_op'],g['gt_where']) , train_entry )
+print(loss[2])
+
+'''
+loss = 0 
+
+criterion = nn.CrossEntropyLoss()
+gt_where = g['gt_where']
+
+
+for b in range(len(gt_where)):
+    for idx in range(len(gt_where[b])):
+        cond_str_truth = gt_where[b][idx]
+        if len(cond_str_truth) == 1:
+            continue
+        data = torch.from_numpy(np.array(cond_str_truth[1:]))
+                   
+        cond_str_truth_var = Variable(data)
+        str_end = len(cond_str_truth)-1
+        cond_str_pred = cond[3][b, idx, :str_end]
+        loss += (criterion(cond_str_pred, cond_str_truth_var) \
+                            / (len(gt_where) * len(gt_where[b])))
+
+
+#print(gt_where)
+#print(gt_where[0])
+
+#print(cond[3].shape)
+
+print(loss) 
+
+'''
+
+
+'''
+loss =0
+where_op = g['where_op']
+
+for b in range(batch_size):
+    if len(where_op[b]) ==0:
+        continue
+
+    cond_op_truth_var = Variable(torch.from_numpy(np.array(where_op[b])))
+    cond_op_pred = cond[2][b , :len(where_op[b]) ]
+    loss+= ( ( nn.CrossEntropyLoss()(cond_op_pred,cond_op_truth_var) ) / batch_size  )
+
 print(loss)
-
-
-
-
-
+'''
 
 
 #where_col = g['cond_num']

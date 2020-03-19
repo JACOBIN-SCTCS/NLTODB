@@ -88,6 +88,9 @@ class Model(nn.Module):
         
         if pred_cond:
 
+
+
+            # Loss for the number of conditions
             cond_num_score , cond_col_score , cond_op_score,cond_str_score = score[2]
 
 
@@ -96,6 +99,10 @@ class Model(nn.Module):
 
             loss += self.ce(cond_num_score, cond_col_num_var )
         
+
+
+
+            # Loss for columns associated with each condition
             T = len( cond_col_score[0] )  #Maximum number of tokens
             batch_size = len(cond_col_score)
             truth_prob = np.zeros(  ( batch_size ,T) , dtype=np.float32)
@@ -118,6 +125,36 @@ class Model(nn.Module):
             loss += bce_loss
             
 
+           # LOSS for operators corresponding to each condition
+            for b in range(batch_size):
+                if len( truth[4][b] ) ==0:
+                    continue             #Continue if there is no condition
+
+                #CUDA cond_op_truth
+                cond_op_truth_var = Variable( torch.from_numpy( np.array( truth[4][b]  ) ) )
+                cond_op_pred  = cond_op_score[ b , :len(truth[4][b] )]
+                loss += (  self.ce(cond_op_pred,cond_op_truth_var) / batch_size  )
+
+            
+            # LOSS for strings in each condition Crossentropy Loss against one hot
+            # encoding of names
+        
+            for b in range(len( truth[5]  )):
+                for idx in range(len(truth[5][b])):
+                    cond_str_truth = truth[5][b][idx]
+                    if len(cond_str_truth) == 1:
+                        continue
+                    data = torch.from_numpy(np.array(cond_str_truth[1:]) )
+
+                    # CUDA cond_str_truth_var
+                    cond_str_truth_var = Variable(data)
+                    str_end = len(cond_str_truth)-1
+
+                    cond_str_pred = cond_str_score[b,idx, :str_end]
+                    loss += ( self.ce(cond_str_pred,cond_str_truth_var)/ ( len(truth[5])* len(truth[5][b]) ) )
+
+    
+
         return loss
 
     
@@ -134,6 +171,84 @@ class Model(nn.Module):
             agg_truth_var = Variable(agg_truth)
 
             agg_loss = self.ce( score[0] , agg_truth_var )
+
+
+        if pred_sel:
+            sel_loss = 0.0
+            
+
+
+            
+        if pred_cond:
+
+
+
+            # Loss for the number of conditions
+            cond_num_score , cond_col_score , cond_op_score,cond_str_score = score[2]
+
+
+            cond_col_num = torch.from_numpy(np.asarray(truth[2]))
+            cond_col_num_var = Variable(cond_col_num)
+
+            cond_loss += self.ce(cond_num_score, cond_col_num_var )
+        
+
+
+
+            # Loss for columns associated with each condition
+            T = len( cond_col_score[0] )  #Maximum number of tokens
+            batch_size = len(cond_col_score)
+            truth_prob = np.zeros(  ( batch_size ,T) , dtype=np.float32)
+            for b in range(batch_size):
+                if len( truth[3][b]  ) > 0:
+
+                    truth_prob[b][ list( truth[3][b]) ] =1
+
+            #CUDA cond_col_truth_var
+            cond_col_truth_var = Variable(torch.from_numpy(truth_prob))
+        
+            cond_col_prob = self.sigmoid( cond_col_score )
+            bce_loss = -torch.mean( 
+                    
+                    3*( cond_col_truth_var *torch.log(cond_col_prob+1e-10)) +
+                    (1-cond_col_truth_var)*torch.log(1-cond_col_prob+1e-10)
+
+                    )
+
+            cond_loss += bce_loss
+            
+
+           # LOSS for operators corresponding to each condition
+            for b in range(batch_size):
+                if len( truth[4][b] ) ==0:
+                    continue             #Continue if there is no condition
+
+                #CUDA cond_op_truth
+                cond_op_truth_var = Variable( torch.from_numpy( np.array( truth[4][b]  ) ) )
+                cond_op_pred  = cond_op_score[ b , :len(truth[4][b] )]
+                cond_loss += (  self.ce(cond_op_pred,cond_op_truth_var) / batch_size  )
+
+            
+            # LOSS for strings in each condition Crossentropy Loss against one hot
+            # encoding of names
+        
+            for b in range(len( truth[5]  )):
+                for idx in range(len(truth[5][b])):
+                    cond_str_truth = truth[5][b][idx]
+                    if len(cond_str_truth) == 1:
+                        continue
+                    data = torch.from_numpy(np.array(cond_str_truth[1:]) )
+
+                    # CUDA cond_str_truth_var
+                    cond_str_truth_var = Variable(data)
+                    str_end = len(cond_str_truth)-1
+
+                    cond_str_pred = cond_str_score[b,idx, :str_end]
+                    cond_loss += ( self.ce(cond_str_pred,cond_str_truth_var)/ ( len(truth[5])* len(truth[5][b]) ) )
+
+    
+
+    
 
 
 

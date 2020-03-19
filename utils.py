@@ -133,8 +133,11 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
             loss = model.loss(scores,
                     
-                        ( data['agg'], None , data['cond_num'] , data['where_col'] ),
-                         train_entry
+                        ( data['agg'], None , data['cond_num'] , data['where_col'],
+                            data['where_op'], data['gt_where'],
+                         ),
+                          
+                          train_entry,
                      )
 
             loss.backward()
@@ -152,8 +155,10 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
            scores = model(data['question_tokens'] , data['column_headers'] ,train_entry,data['where_col'],data['gt_where'] ) 
            loss = model.validation_loss( scores,
-                   (data['agg'], None,data['cond_num'] ,data['where_col'] )
-                   
+                   (data['agg'], None,data['cond_num'] ,data['where_col'] ,
+                    data['where_op'] , data['gt_where'],     
+                   )
+                    
                    , train_entry)
         
            agg_loss , sel_loss , cond_loss = loss
