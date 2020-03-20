@@ -7,7 +7,7 @@ from torch.autograd import Variable
 
 class CondPredictor(nn.Module):
 
-    def __init__(self, embed_dim,hidden_dim, num_layers=1,max_tok_num=200):
+    def __init__(self, embed_dim,hidden_dim, num_layers=2,max_tok_num=200 , dropout=0.3):
 
         super().__init__()
         
@@ -19,9 +19,9 @@ class CondPredictor(nn.Module):
         # Layers for the purpose of predicting the number of conditions
         #------------------------------------------------------------------
 
-        self.cond_num_name_enc = nn.LSTM(embed_dim , int(hidden_dim/2),num_layers=num_layers,batch_first=True , bidirectional=True)
+        self.cond_num_name_enc = nn.LSTM(embed_dim , int(hidden_dim/2),num_layers=num_layers,batch_first=True ,dropout=dropout, bidirectional=True)
         self.cond_num_col_att  = nn.Linear(hidden_dim,1)
-        self.cond_num_lstm  = nn.LSTM(embed_dim , int(hidden_dim/2), num_layers=2, batch_first=True,dropout=0.3,bidirectional=True )    
+        self.cond_num_lstm  = nn.LSTM(embed_dim , int(hidden_dim/2), num_layers=2, batch_first=True,dropout=dropout,bidirectional=True )    
         self.cond_num_att  = nn.Linear(hidden_dim,1)
 
         # Limit set for the number of conditions are 5
@@ -38,8 +38,8 @@ class CondPredictor(nn.Module):
         #---------------------------------------------------------------
         
 
-        self.cond_col_name_enc = nn.LSTM(embed_dim , int(hidden_dim/2),num_layers=num_layers,batch_first=True,bidirectional=True)
-        self.cond_col_lstm = nn.LSTM(embed_dim , int(hidden_dim/2),num_layers=num_layers,batch_first=True,bidirectional=True)
+        self.cond_col_name_enc = nn.LSTM(embed_dim , int(hidden_dim/2),num_layers=num_layers,batch_first=True,dropout=dropout,bidirectional=True)
+        self.cond_col_lstm = nn.LSTM(embed_dim , int(hidden_dim/2),num_layers=num_layers,batch_first=True,dropout=dropout,bidirectional=True)
 
         self.cond_col_att = nn.Linear(hidden_dim,hidden_dim)
 
@@ -55,8 +55,8 @@ class CondPredictor(nn.Module):
         #---------------------------------------------------------------
 
         
-        self.cond_op_name_enc = nn.LSTM(embed_dim, int(hidden_dim/2), num_layers = num_layers,batch_first=True,bidirectional=True)
-        self.cond_op_lstm     = nn.LSTM(embed_dim, int(hidden_dim/2), num_layers = num_layers,batch_first=True,bidirectional=True)
+        self.cond_op_name_enc = nn.LSTM(embed_dim, int(hidden_dim/2), num_layers = num_layers,batch_first=True,dropout=dropout,bidirectional=True)
+        self.cond_op_lstm     = nn.LSTM(embed_dim, int(hidden_dim/2), num_layers = num_layers,batch_first=True,dropout=dropout,bidirectional=True)
         self.cond_op_att      = nn.Linear(hidden_dim, hidden_dim)
         self.cond_op_out_k    = nn.Linear(hidden_dim, hidden_dim)
         self.cond_op_out_col  = nn.Linear(hidden_dim, hidden_dim)
@@ -71,13 +71,13 @@ class CondPredictor(nn.Module):
         #---------------------------------------------------------------
 
 
-        self.cond_str_lstm = nn.LSTM(embed_dim,int(hidden_dim/2) ,num_layers=num_layers,batch_first=True, bidirectional=True )
+        self.cond_str_lstm = nn.LSTM(embed_dim,int(hidden_dim/2) ,num_layers=num_layers,batch_first=True, dropout=dropout,bidirectional=True )
 
         self.cond_str_decoder = nn.LSTM(max_tok_num, hidden_dim,num_layers=num_layers,
-                    batch_first=True,
+                    batch_first=True,dropout=0.3
                 )
 
-        self.cond_str_name_enc = nn.LSTM(embed_dim,int(hidden_dim/2) ,num_layers=num_layers,batch_first=True, bidirectional=True )
+        self.cond_str_name_enc = nn.LSTM(embed_dim,int(hidden_dim/2) ,num_layers=num_layers,batch_first=True,dropout=dropout, bidirectional=True )
 
 
         self.cond_str_out_g = nn.Linear(hidden_dim,hidden_dim)
