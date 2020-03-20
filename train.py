@@ -22,7 +22,7 @@ n_epochs = 5
 
 
 
-train_entry = (True,None,None)
+train_entry = (None,None,True)
 
 word_embed = load_word_emb(filename)
 

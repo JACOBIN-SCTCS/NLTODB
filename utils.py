@@ -188,12 +188,12 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
             epoch_agg_valid_loss = agg_val_loss/len(valid_dataloader) 
             print('\n Aggregation Model Validation Loss----------------> {}'.format(epoch_agg_valid_loss))
             if epoch_agg_valid_loss < best_agg_val:
-                print('\nValidation loss decreased from {:0.6f} ------->  {:.6f}'.format(best_agg_val,epoch_agg_valid_loss) )
+                print('\nValidation loss decreased from {:.6f} ------->  {:.6f}'.format(best_agg_val,epoch_agg_valid_loss) )
                 print('\t Saving Model\n')
                 torch.save(model.agg_predictor.state_dict() , 'saved_models/agg_predictor.pth')
                 best_agg_val = epoch_agg_valid_loss
 
-                
+                print('-------------------------------------------------------------------------\n')
 
         if pred_sel:
             epoch_sel_valid_loss = sel_val_loss/len(valid_dataloader)
@@ -202,7 +202,14 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
         if pred_cond:
 
             epoch_cond_valid_loss = cond_val_loss / len(valid_dataloader)
+            print('\n Conditions Prediction Model  Validation loss ------------> {}'.format(epoch_cond_valid_loss))
+            if epoch_cond_valid_loss < best_cond_val:
+                print('Validation loss decreased from {:.6f} -------> {:.6f}'.format(best_cond_val,epoch_cond_valid_loss))
+                print('\t Saving Model\n')
+                torch.save(model.cond_predictor.state_dict(),'saved_models/cond_predictor.pth')
+                best_cond_val = epoch_cond_valid_loss
 
+                print('-------------------------------------------------------------------------\n')
 
 
         print('\n------------------------------------------------------------------------\n')

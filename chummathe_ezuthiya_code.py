@@ -11,6 +11,7 @@ import numpy as np
 from utils import train_model,test_model
 from model import Model
 from torch.autograd import Variable
+import torch.nn.functional as F
 
 N_word = 50 
 batch_size =10
@@ -41,6 +42,8 @@ word_emb = WordEmbedding(N_word,word_embed)
 
 mod = Model(hidden_dim,N_word,word_emb)
 train_entry =(None,None,True)
+mod.cond_predictor.load_state_dict( torch.load('saved_models/cond_predictor.pth')  )
+
 
 agg , sel , cond = mod(g['question_tokens'] , g['column_headers'], train_entry , g['where_col'], g['gt_where'] )
 
@@ -49,8 +52,140 @@ agg , sel , cond = mod(g['question_tokens'] , g['column_headers'], train_entry ,
 #print(cond[2].shape)
 #print(cond[3].shape)
 
+cond_num_score,cond_col_score , cond_op_score , cond_str_score = [ x.data.cpu().numpy() for  x in cond ] 
+
+
+
+def check_accuracy( pred_cond , gt_cond ):
+    
+    num_err = 0
+    col_err = 0
+    op_err  = 0 
+    str_err = 0
+
+    correct =0
+
+
+    
+    
+    for b in range(len(pred_cond)):
+        flag =True
+        if len(pred_cond[b]) != len(gt_cond[b]):
+            flag=False
+            num_err +=1
+        
+        if flag and set( x[0] for x in pred_cond[b]  ) != set(y[0]  for y in gt_cond[b]):
+            flag = False
+            col_err+=1
+
+        
+        for idx in range(len(pred_cond[b])):
+            if not flag:
+                break
+
+            gt_idx = tuple(x[0] for x in gt_cond[b]  ).index( pred_cond[b][idx][0]  )
+            if flag and gt_cond[b][gt_idx][1] != pred_cond[b][idx][1]:
+                flag=False
+                op_err +=1
+        
+        for idx in range(len(pred_cond[b])):
+            if not flag:
+                break
+            gt_idx = tuple(x[0] for x in gt_cond[b]).index(pred_cond[b][idx][0])
+            if flag and gt_cond[b][gt_idx][2].lower() != pred_cond[b][gt_idx][2].lower():
+                flag = False
+                str_err+=1
+
+        if flag==True:
+            correct+=1
+
+
+    
+    print(num_err)
+    print(col_err)
+    print(op_err)
+    print(str_err)
+    print('Correct====' + str(correct))
+    
+
+
+
+
+
+
+print(cond_str_score.shape)
+pred_cond =[]
+for b in range( batch_size ):
+    
+    b_cond = [] 
+    cond_num = np.argmax(cond_num_score[b])
+
+    
+    all_toks = ['<BEG>'] + g['question_tokens'][b] + ['<END>']
+
+    max_idxes = np.argsort( -cond_col_score[b]  )[:cond_num]
+    for i in range(cond_num):
+
+        cur_cond = [] 
+        cur_cond.append(max_idxes[i])
+        cur_cond.append( np.argmax(cond_op_score[b][i]))
+        cur_cond_str_toks = []
+        for str_score in cond_str_score[b][i]:
+            str_tok = np.argmax( str_score[:len(all_toks)] )
+            str_val = all_toks[str_tok]
+            if str_val =='<END>':
+                break
+            cur_cond_str_toks.append(str_val)
+        
+        modif_list = []
+        for j in cur_cond_str_toks:
+            if j not in modif_list and j!='<BEG>':
+                modif_list.append(j)
+        cur_cond_str_toks = modif_list
+        cur_cond.append( ' '.join(cur_cond_str_toks)  )
+
+        b_cond.append(cur_cond)
+    pred_cond.append(b_cond)
+
+print(pred_cond)
+print('\n\n')
+print(g['gt_cond'])
+check_accuracy(pred_cond,g['gt_cond'])
+    
+
+
+
+
+
+'''
 loss = mod.validation_loss((agg,sel,cond), (g['agg'] , None,g['cond_num'],g['where_col'],g['where_op'],g['gt_where']) , train_entry )
 print(loss[2])
+'''
+
+'''
+cond_num_score, cond_col_score , cond_op_score , cond_str_score = [ x.data.cpu().numpy() for x in cond]
+
+correct = 0
+
+print( np.argmax(cond_num_score,axis=1))
+for b in range(batch_size):
+    cond_num = np.argmax(cond_num_score[b])
+    if(cond_num== g['cond_num'][b] ):
+        correct+=1
+
+    max_idxes = np.argsort(-cond_col_score[b])[:cond_num]
+    print('----------------')
+    print(max_idxes)
+    print(g['where_col'][b])
+
+'''
+
+#print(g['cond_num'])
+#print(correct)
+
+
+
+
 
 '''
 loss = 0 
