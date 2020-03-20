@@ -15,7 +15,7 @@ filename= 'glove/glove.6B.50d.txt'
 #checkpoint_name = 'saved_models/agg_model.pth'
 
 
-test_entry = (True,None,None)
+test_entry = (None,None,True)
 
 N_word= 50
 batch_size = 10

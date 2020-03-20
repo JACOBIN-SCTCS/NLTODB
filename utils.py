@@ -231,7 +231,110 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
     #torch.save(model.state_dict(), 'saved_models/agg_model.pth')
     #print(model.state_dict())
 
+
+
+def check_accuracy(pred_cond, gt_cond):
+
+    correct = 0
+
+    num_err = 0 
+    col_err = 0
+    op_err  = 0
+    str_err = 0
+    
+    
+    
+    for b in range(len(pred_cond)):
         
+        flag = True
+
+        if len(pred_cond[b]) != len(gt_cond[b]):
+            flag = False
+            num_err += 1 
+
+        if flag and set(x[0] for x in pred_cond[b]) != set(y[0] for y in gt_cond[b]):
+
+            flag = False
+            col_err += 1 
+
+        for idx in range( len(pred_cond[b]) ):
+
+            if not flag:
+                break
+
+            gt_idx = tuple(x[0] for x in gt_cond[b]).index(pred_cond[b][idx][0])
+
+            if flag and gt_cond[b][gt_idx][1] != pred_cond[b][idx][1]:
+                flag = False
+                op_err += 1
+
+        for idx in range(len(pred_cond[b])):
+            if not flag:
+                break
+
+            gt_idx = tuple(x[0] for x in gt_cond[b]).index(pred_cond[b][idx][0])
+
+            if flag and str(gt_cond[b][gt_idx][2]).lower() != str(pred_cond[b][gt_idx][2]).lower():
+                flag = False
+                str_err += 1
+
+
+        if flag==True:
+            correct+=1
+        
+    return (num_err,col_err,op_err,str_err,correct)
+
+
+
+
+
+def gen_query_acc( cond_scores, questions ):
+
+    cond_num_score, cond_col_score, cond_op_score, cond_str_score = [
+                x.data.cpu().numpy()  for x in cond_scores
+            ]
+
+    pred_cond = [] 
+
+    for b in range(len(cond_num_score)):
+
+        b_cond = []
+        cond_num = np.argmax(cond_num_score[b])
+
+        all_toks = ['<BEG>'] + questions[b] + ['<END>']
+        max_idxes = np.argsort(-cond_col_score[b])[:cond_num]
+
+        for i in range(cond_num):
+            cur_cond = [] 
+            cur_cond.append(max_idxes[i])
+            cur_cond.append(np.argmax(cond_op_score[b][i]))
+            cur_cond_str_toks = []
+
+            for str_score in cond_str_score[b][i]:
+                str_tok = np.argmax(str_score[:len(all_toks)])
+                str_val = all_toks[str_tok]
+                if str_val == '<END>':
+                    break
+                cur_cond_str_toks.append(str_val)
+
+            # Modif Codes can be changed
+            modif_list = []
+            for j in cur_cond_str_toks:
+                if j not in modif_list and j!='<BEG>':
+                    modif_list.append(j)
+
+            cur_cond_str_toks = modif_list
+            cur_cond.append(' '.join(cur_cond_str_toks))
+
+            b_cond.append(cur_cond)
+        pred_cond.append(b_cond)
+
+    return pred_cond
+
+
+
+
+
 
 
 def test_model(model,test_loader , test_entry):
@@ -241,6 +344,12 @@ def test_model(model,test_loader , test_entry):
     if test_agg:
         model.agg_predictor.load_state_dict( torch.load('saved_models/agg_predictor.pth')  )
 
+
+    if test_cond:
+        model.cond_predictor.load_state_dict(torch.load('saved_models/cond_predictor.pth'))
+
+
+
     # LOADING OF STATE DICTS GOES DOWN HERE
 
 
@@ -249,13 +358,20 @@ def test_model(model,test_loader , test_entry):
     
     agg_correct = 0
     sel_correct = 0 
-    cond_correct = 0
 
+
+    cond_correct = 0
+    cond_num_err = 0
+    cond_col_err = 0
+    cond_op_err  = 0 
+    cond_str_err = 0
 
 
     for data in test_loader:
         
-        scores  = model(data['question_tokens'] , data['column_headers'], (True,None,None))
+        scores  = model(data['question_tokens'] , data['column_headers'],test_entry,
+                  data['where_col'], data['gt_where']
+                )
         
         if test_agg:
 
@@ -268,6 +384,30 @@ def test_model(model,test_loader , test_entry):
                 if res[i]:
                     agg_correct+=1
 
-    print('\nAggregation Operator Test Accuracy =====> {}\n'.format( (agg_correct/len(test_loader.dataset))*100 ))
+        if test_cond:
+            
+            pred_cond = gen_query_acc( scores[2], data['question_tokens']  )
+            
+            a,b,c,d,e = check_accuracy(pred_cond , data['gt_cond'])
+
+            cond_num_err += a
+            cond_col_err += b
+            cond_op_err  += c
+            cond_str_err += d
+            cond_correct += e
+
+    if test_agg:
 
 
+        print('\nAggregation Operator Test Accuracy =====> {}\n'.format( (agg_correct/len(test_loader.dataset))*100 ))
+    
+    if test_cond:
+
+        #length = len(test_loader.dataset)
+        
+        print('\n Condition Predictor Test Accuracy======>{}\n'.format( ( cond_correct /len(test_loader.dataset))*100  ))
+       
+        #print( 'Condtion Number accuracy' +  str ( (length-cond_num_err)/length *100)   ) 
+        #print( 'Condtion Column accuracy' +  str ( (length-cond_col_err)/length *100)   )
+        #print( 'Condtion Number accuracy' +  str ( (length-cond_op_err)/length *100)   )
+        #print( 'Condtion string accuracy' +  str ( (length-cond_str_err)/length *100)   )
