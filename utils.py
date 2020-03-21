@@ -286,6 +286,55 @@ def check_accuracy(pred_cond, gt_cond):
 
 
 
+# Exact code from Xiaojunxu SQLnet repo for ensuring additional safety
+# when predicting the strings in the WHERE Clause
+
+def merge_tokens(tok_list , raw_tok_str):
+
+    tok_str  = raw_tok_str.lower()
+    alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789$('
+    special  = { 
+                    '-LRB-':'(',
+                    '-RRB-':')',
+                    '-LSB-':'[',
+                    '-RSB-':']',
+                    '``':'"',
+                    '\'\'':'"',
+                    '--':u'\u2013'
+                }
+    ret = ''
+    double_quote_appear = 0
+    
+    for raw_tok in tok_list:
+        
+        if not raw_tok:
+            continue
+        
+        tok = special.get(raw_tok,raw_tok)
+        if tok == '"':
+            double_quote_appear = 1 - double_quote_appear
+
+        if len(ret) == 0:
+            pass
+        
+        elif len(ret)>0  and ret +' '+ tok in tok_str:
+            ret = ret+ ' '
+        
+        elif len(ret)>0 and ret+tok   in tok_str:
+            pass
+        elif tok =='"':
+            if double_quote_appear :
+                ret = ret + ' '
+        elif tok[0] not in alphabet:
+            pass
+        elif ( ret[-1] not in ['(', '/', u'\u2013', '#', '$', '&']  ) and (ret[-1] !='"' or not double_quote_appear):
+
+            ret = ret + ' '
+
+        ret = ret+tok
+
+    return ret.strip()
+
 
 
 def gen_query_acc( cond_scores, questions ):
@@ -324,8 +373,8 @@ def gen_query_acc( cond_scores, questions ):
                     modif_list.append(j)
 
             cur_cond_str_toks = modif_list
+            #cur_cond.append(merge_tokens( cur_cond_str_toks, "".join(questions[b])  ))
             cur_cond.append(' '.join(cur_cond_str_toks))
-
             b_cond.append(cur_cond)
         pred_cond.append(b_cond)
 
