@@ -218,7 +218,8 @@ class CondPredictor(nn.Module):
             if num<max_col_num:
                 cond_col_score[i,num:] = -100
 
-        cond_col_score = self.softmax(cond_col_score)
+
+
         
 
         #------------------------------------------------------------------------

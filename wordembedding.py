@@ -3,13 +3,14 @@ import json
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
+from api import api_question_embed
 
 
 class WordEmbedding(nn.Module):
 
 
 
-    def __init__(self,N_word,word_emb):
+    def __init__(self,N_word,word_emb=None):
         super(WordEmbedding,self).__init__()
         self.N_word = N_word
         self.word_emb = word_emb
@@ -27,7 +28,14 @@ class WordEmbedding(nn.Module):
              
         for i,(q_one,col_one) in enumerate(zip(q,col)):
         
-            q_val = [ self.word_emb.get(x,np.zeros(self.N_word,dtype=np.float32))  for x in q_one ]
+            q_val=  None
+            if self.word_emb:
+
+                q_val = [ self.word_emb.get(x,np.zeros(self.N_word,dtype=np.float32))  for x in q_one ]
+            
+            else:
+                q_val = api_question_embed(q_one)
+
 
             val_embs.append( [np.zeros(self.N_word,dtype=np.float32)] + q_val + [np.zeros(self.N_word,dtype=np.float32)]  )
 
@@ -84,7 +92,15 @@ class WordEmbedding(nn.Module):
         val_len = np.zeros(total_columns,dtype=np.int64 )
 
         for i,col in enumerate(col_list):
-            val = [ self.word_emb.get(x, np.zeros(self.N_word,dtype=np.float32)) for x in col  ] 
+            val = None
+            if self.word_emb:
+
+                val = [ self.word_emb.get(x, np.zeros(self.N_word,dtype=np.float32)) for x in col  ] 
+
+            else:
+                
+                val = api_question_embed(col)
+
 
             val_embs.append(val)
             val_len[i] = len(val)
