@@ -5,11 +5,14 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+from utils import gen_query_acc
 
 
 
 filename= 'glove/glove.6B.50d.txt'
-checkpoint_name = 'saved_models/agg_model.pth'
+agg_checkpoint_name = 'saved_models/agg_predictor.pth'
+select_checkpoint_name = None
+cond_checkpoint_name = 'saved_models/cond_predictor.pth'
 
 
 N_word= 50
@@ -25,16 +28,25 @@ word_emb =  WordEmbedding(N_word,word_embed)
 
 
 model = Model(hidden_dim,N_word,word_emb)
-model.load_state_dict( torch.load(checkpoint_name) )
+model.agg_predictor.load_state_dict( torch.load(agg_checkpoint_name) )
+model.cond_predictor.load_state_dict(torch.load(cond_checkpoint_name))
 
-question = [ 'What is the total salary of employee 3'.split(' ') ,  'What is the total salary of employee 3'.split(' ')  ] 
+
+model.eval()
+
+question = [ 'What is the salary of employee having  id 3'.split(' ') ,  'What is the total salary of employee 3'.split(' ')  ] 
 
 
-columns =[ [ ['id'],['batch'],['name']]  ,   [ ['id'],['batch'],['name']]  ]
+columns =[ [ ['id'],['batch'],['name'],['salary']]  ,   [ ['id'],['batch'],['name'],['salary']]  ]
 
-scores = model( question, columns , (True,None,None) )
+scores = model( question, columns , (True,None,True) )
 
 out = torch.argmax(torch.exp(scores[0]),dim=1)
+where_clause_query = gen_query_acc(scores[2], question  )
 for i in range( len(out) -1 ):
     print(model.agg_ops[out[i]])
+    print(where_clause_query[i])
+    
 
+    
+    
