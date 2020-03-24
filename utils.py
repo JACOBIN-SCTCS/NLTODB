@@ -486,3 +486,47 @@ def test_model(model,test_loader , test_entry):
         #print( 'Condtion Column accuracy' +  str ( (length-cond_col_err)/length *100)   )
         #print( 'Condtion Number accuracy' +  str ( (length-cond_op_err)/length *100)   )
         #print( 'Condtion string accuracy' +  str ( (length-cond_str_err)/length *100)   )
+
+
+
+def gen_sql_query(agg_idx,sel_idx,conds,cols,table_name,symbol='_'):
+
+    aggs = ['', 'MAX', 'MIN', 'COUNT', 'SUM', 'AVG']
+    cond_ops = ['=','<','>']
+
+    def merge_column_name(column_name,symbol):
+        
+        return symbol.join(column_name)
+
+    def generate_each_cond(cols,condition,symbol):
+        
+        s = ''
+        s = s+ merge_column_name( cols[condition[0]],symbol ) + ' ' + cond_ops[condition[1]] + ' ' + condition[2]
+
+        return s
+
+
+
+    query = ''
+    if agg_idx >0:
+        query = query+ '\nSELECT '+aggs[agg_idx]+'( '+ merge_column_name(cols[sel_idx],symbol) + ' )\n'
+    else:
+        query = query + '\nSELECT '+ merge_column_name(cols[sel_idx],symbol) +'\n'
+
+    if len(conds)==0:
+
+        query = query + 'FROM ' + table_name + ';\n'
+        return query
+
+    else:
+
+        query = query + 'FROM ' + table_name + '\n'
+
+        conditions_list = []
+        for cond in conds:
+            conditions_list.append(generate_each_cond(cols,cond,symbol))
+
+        cond_str = ' AND '.join(conditions_list)
+
+        query = query + cond_str +' ;\n'
+        return query
