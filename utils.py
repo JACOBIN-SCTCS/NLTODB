@@ -520,7 +520,7 @@ def gen_sql_query(agg_idx,sel_idx,conds,cols,table_name,symbol='_'):
 
     else:
 
-        query = query + 'FROM ' + table_name + '\n'
+        query = query + 'FROM ' + table_name + '\nWHERE '
 
         conditions_list = []
         for cond in conds:
