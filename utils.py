@@ -133,7 +133,7 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
             loss = model.loss(scores,
                     
-                        ( data['agg'], None , data['cond_num'] , data['where_col'],
+                         ( data['agg'], data['sel'] , data['cond_num'] , data['where_col'],
                             data['where_op'], data['gt_where'],
                          ),
                           
@@ -155,7 +155,7 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
            scores = model(data['question_tokens'] , data['column_headers'] ,train_entry,data['where_col'],data['gt_where'] ) 
            loss = model.validation_loss( scores,
-                   (data['agg'], None,data['cond_num'] ,data['where_col'] ,
+                   (data['agg'], data['sel'],data['cond_num'] ,data['where_col'] ,
                     data['where_op'] , data['gt_where'],     
                    )
                     
@@ -197,7 +197,16 @@ def train_model( model, n_epochs , optimizer,train_dataloader ,valid_dataloader,
 
         if pred_sel:
             epoch_sel_valid_loss = sel_val_loss/len(valid_dataloader)
-        
+            print('\n Selection Model Validation Loss-----------------> {}'.format(epoch_sel_valid_loss))
+            if epoch_sel_valid_loss < best_sel_val:
+                
+                print('\nValidation loss decreased from {:.6f} ------->  {:.6f}'.format(best_sel_val,epoch_sel_valid_loss) )
+                print('\t Saving Model\n')
+                torch.save(model.sel_predictor.state_dict() , 'saved_models/sel_predictor.pth')
+                best_sel_val = epoch_sel_valid_loss
+
+                print('-------------------------------------------------------------------------\n')
+
         
         if pred_cond:
 
@@ -393,6 +402,8 @@ def test_model(model,test_loader , test_entry):
     if test_agg:
         model.agg_predictor.load_state_dict( torch.load('saved_models/agg_predictor.pth')  )
 
+    if test_sel:
+        model.sel_predictor.load_state_dict( torch.load('saved_models/sel_predictor.pth')  )
 
     if test_cond:
         model.cond_predictor.load_state_dict(torch.load('saved_models/cond_predictor.pth'))
@@ -433,6 +444,17 @@ def test_model(model,test_loader , test_entry):
                 if res[i]:
                     agg_correct+=1
 
+        if test_sel:
+            
+            truth_sel = torch.from_numpy(np.asarray(data['sel']))
+            out_sel = torch.argmax( torch.exp(scores[1]),dim=1)
+            
+            res_sel = torch.eq(truth_sel,out_sel)
+
+            for i in range(len(res_sel)):
+                if res_sel[i]:
+                    sel_correct+=1
+
         if test_cond:
             
             pred_cond = gen_query_acc( scores[2], data['question_tokens']  )
@@ -450,6 +472,10 @@ def test_model(model,test_loader , test_entry):
 
         print('\nAggregation Operator Test Accuracy =====> {}\n'.format( (agg_correct/len(test_loader.dataset))*100 ))
     
+    if test_sel:
+        
+        print('\n Selection Operation Test Accuracy =====> {}\n'.format((sel_correct/len(test_loader.dataset))*100  ))
+
     if test_cond:
 
         #length = len(test_loader.dataset)

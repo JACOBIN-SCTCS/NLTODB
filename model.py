@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from agg_predictor import AggPredictor
 from cond_predictor import CondPredictor
+from select_predictor import SelectionPredictor
 from wordembedding import WordEmbedding
 from torch.autograd import Variable
 import numpy as np
@@ -27,7 +28,7 @@ class Model(nn.Module):
 
         self.agg_predictor = AggPredictor( embed_dim , hidden_dim , self.num_layers) 
         self.cond_predictor = CondPredictor( embed_dim , hidden_dim , self.num_layers, self.max_tok_num )
-
+        self.sel_predictor  = SelectionPredictor(embed_dim,hidden_dim , self.num_layers)
 
         self.ce = nn.CrossEntropyLoss()
 
@@ -57,7 +58,8 @@ class Model(nn.Module):
 
         
         if pred_sel:
-            sel_score =None
+            hidden = (torch.zeros(self.num_layers*2,batch_size,int(self.hidden_dim/2)) ,  torch.zeros(self.num_layers*2,batch_size,int(self.hidden_dim/2))  )
+            sel_score =self.sel_predictor.forward(embedding,length,col_inp_var,name_length,col_length,hidden)
 
 
 
@@ -83,8 +85,11 @@ class Model(nn.Module):
             loss +=  self.ce(score[0],agg_truth_var)
 
         if pred_sel:
+            
+            sel_truth = torch.from_numpy(np.asarray(truth[1]))
+            sel_truth_var = Variable(sel_truth)
 
-            loss+=0.0
+            loss+=   self.ce(score[1],sel_truth_var)
         
         if pred_cond:
 
@@ -174,10 +179,10 @@ class Model(nn.Module):
 
 
         if pred_sel:
-            sel_loss = 0.0
+            sel_truth = torch.from_numpy( np.asarray( truth[1] ) )
+            sel_truth_var = Variable(sel_truth)
+            sel_loss = self.ce( score[1] , sel_truth_var )
             
-
-
             
         if pred_cond:
 
