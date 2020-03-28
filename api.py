@@ -20,15 +20,15 @@ def get_word_embed(word):
 
         return np.zeros(300,dtype=np.float32 )
 
-    embedding_string = response.text.split(', ')
+    embedding_string = response.text.split(' ')
     
     
 
     for x in range(1,301):
         if x == 300:
-            embedding_string[300] = float(   embedding_string[x].replace("'","").replace("]","")  )
+            embedding_string[300] = float(   embedding_string[x].replace('\n',''))
         else:
-            embedding_string[x] = float( embedding_string[x].replace("'","") )
+            embedding_string[x] = float( embedding_string[x] )
 
 
     embedding = embedding_string[1:]
