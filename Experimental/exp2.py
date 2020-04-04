@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 from NLTODB.net_utils import run_lstm
 import numpy as np
+from torch.autograd import Variable
+
 
 class SqlovaCondPredictor(nn.Module):
     
@@ -142,7 +144,10 @@ class SqlovaCondPredictor(nn.Module):
         self.softmax_dim1 = nn.Softmax(dim=1)
         self.softmax_dim2 = nn.Softmax(dim=2)
         self.sigmoid      = nn.Sigmoid()
-        
+        self.ce           = nn.CrossEntropyLoss()
+        self.bce          = nn.BCELoss()
+
+
     def forward(self,q,q_len ,col,col_len,gt_cond=None,gt_where_op=None):
         
         batch_size = len(q)
@@ -352,6 +357,62 @@ class SqlovaCondPredictor(nn.Module):
     
         return cond_num_score,cond_col_score,cond_op_score,cond_str_score
     
+    
+    def loss(self,score,gt_num,gt_col,gt_op,gt_str):
+
+        cond_loss = 0
+
+        cond_num_score , cond_col_score,cond_op_score,cond_str_score = score
+
+        cond_col_num = torch.from_numpy(np.asarray(gt_num))
+        cond_col_num_var = Variable(cond_col_num)
+
+
+        # Loss for number of conditons
+        cond_loss += self.ce(cond_num_score,cond_col_num_var)
+
+
+        batch_size = len(cond_col_score)
+        max_columns = len(cond_col_score[0])
+
+        ground_truth_col = torch.zeros((batch_size,max_columns))
+        for b in range(batch_size):
+            for cur in gt_col[b]:
+                ground_truth_col[b,cur]  = 1.0
+
+        col_prob = self.sigmoid(cond_col_score)
+
+        # Loss for the columns associated with each condition
+        cond_loss += self.bce(col_prob,ground_truth_col)
+
+
+        for b in range(batch_size):
+            if len(gt_op[b]) ==0:
+                continue
+
+            cond_op_truth_var = Variable(torch.from_numpy(np.asarray(gt_op[b])))
+
+            cond_op_pred = cond_op_score [ b, :len(gt_op[b])]
+            cond_loss += ( self.ce(cond_op_pred,cond_op_truth_var) /batch_size)
+
+
+        
+        for b in range(batch_size):
+            if len(gt_str[b])==0:
+                continue
+
+            gwvi1 = torch.tensor(gt_str[b])
+
+            g_start = gwvi1[:,0]
+            g_end   = gwvi1[:,1]
+
+            cond_loss += self.ce(cond_str_score[b,:len(gt_str[b]),:,0], g_start)
+            cond_loss += self.ce(cond_str_score[b,:len(gt_str[b]),:,1], g_end  )
+
+        
+
+        return cond_loss
+
     
     
     
