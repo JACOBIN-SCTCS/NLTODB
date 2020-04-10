@@ -12,8 +12,10 @@ def get_word_embed(word):
     
     #starttime=time.time()
     #arg=sys.argv[1]
-
-    url="http://127.0.0.1:5000/" + word
+    if word=="#":
+        url="http://35.184.36.137/embed?id=%23"
+    else:
+        url="http://35.184.36.137/embed?id=" + word
     response = requests.get(url)
 
     if (response.text==word):
