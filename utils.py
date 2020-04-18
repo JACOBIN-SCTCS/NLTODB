@@ -501,7 +501,7 @@ def gen_sql_query(agg_idx,sel_idx,conds,cols,table_name,symbol='_'):
     def generate_each_cond(cols,condition,symbol):
         
         s = ''
-        s = s+ merge_column_name( cols[condition[0]],symbol ) + ' ' + cond_ops[condition[1]] + ' ' + condition[2]
+        s = s+ merge_column_name( cols[condition[0]],symbol ) + ' ' + cond_ops[condition[1]] + ' \"' + condition[2] + '\"'
 
         return s
 
