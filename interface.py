@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from utils import gen_query_acc,gen_sql_query
 import sys
-
+from word_mapping import *
 
 filename= 'glove/glove.42B.300d.txt'
 agg_checkpoint_name = 'saved_models/agg_predictor.pth'
@@ -35,6 +35,7 @@ model.sel_predictor.load_state_dict(torch.load(select_checkpoint_name))
 model.eval()
 
 sentence=sys.argv[1]
+sentence = process_sentence(sentence)
 
 question = [ sentence.split(' ') ,  sentence.split(' ')  ] 
 
