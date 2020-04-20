@@ -294,6 +294,81 @@ def check_accuracy(pred_cond, gt_cond):
     return (num_err,col_err,op_err,str_err,correct)
 
 
+def check_overall_accuracy(scores, gt):
+
+    pred_agg , pred_sel , pred_cond = scores
+    gt_agg, gt_sel,gt_cond = gt
+    correct = 0
+
+    #num_err = 0 
+    #col_err = 0
+    #op_err  = 0
+    #str_err = 0
+    
+    
+    truth_agg = torch.from_numpy(np.asarray(gt_agg))
+    out_agg = torch.argmax( torch.exp(scores[0]),dim=1)
+    res_agg = torch.eq(truth_agg,out_agg)
+    
+    truth_sel = torch.from_numpy(np.asarray(gt_sel))
+    out_sel = torch.argmax( torch.exp(scores[1]),dim=1)        
+    res_sel = torch.eq(truth_sel,out_sel)
+
+         
+
+    
+    for b in range(len(pred_cond)):
+        
+        flag = True
+        if res_agg[b]:
+            correct+=1
+        #else:
+        #     # Add a continue here with flag false
+        
+        if res_sel[b]:
+            correct+=1
+        # else:
+        #   Add a continue statement here
+           
+        
+        
+        
+        if len(pred_cond[b]) != len(gt_cond[b]):
+            flag = False
+            #num_err += 1 
+
+        if flag and set(x[0] for x in pred_cond[b]) != set(y[0] for y in gt_cond[b]):
+
+            flag = False
+            #col_err += 1 
+
+        for idx in range( len(pred_cond[b]) ):
+
+            if not flag:
+                break
+
+            gt_idx = tuple(x[0] for x in gt_cond[b]).index(pred_cond[b][idx][0])
+
+            if flag and gt_cond[b][gt_idx][1] != pred_cond[b][idx][1]:
+                flag = False
+                #op_err += 1
+
+        for idx in range(len(pred_cond[b])):
+            if not flag:
+                break
+
+            gt_idx = tuple(x[0] for x in gt_cond[b]).index(pred_cond[b][idx][0])
+
+            if flag and str(gt_cond[b][gt_idx][2]).lower() != str(pred_cond[b][gt_idx][2]).lower():
+                flag = False
+                #str_err += 1
+
+
+        if flag==True:
+            correct+=1
+        
+    return (correct/3)
+
 
 # Exact code from Xiaojunxu SQLnet repo for ensuring additional safety
 # when predicting the strings in the WHERE Clause
@@ -425,6 +500,8 @@ def test_model(model,test_loader , test_entry):
     cond_col_err = 0
     cond_op_err  = 0 
     cond_str_err = 0
+    
+    overall_correct = 0
 
 
     for data in test_loader:
@@ -466,6 +543,14 @@ def test_model(model,test_loader , test_entry):
             cond_op_err  += c
             cond_str_err += d
             cond_correct += e
+            
+        
+        if test_agg and test_sel and test_cond:
+            pred_cond = gen_query_acc( scores[2], data['question_tokens']  )
+            corr = check_overall_accuracy(scores, (data['agg'],data['sel'],data['gt_cond']))
+            overall_correct+=corr
+
+            
 
     if test_agg:
 
@@ -486,6 +571,11 @@ def test_model(model,test_loader , test_entry):
         #print( 'Condtion Column accuracy' +  str ( (length-cond_col_err)/length *100)   )
         #print( 'Condtion Number accuracy' +  str ( (length-cond_op_err)/length *100)   )
         #print( 'Condtion string accuracy' +  str ( (length-cond_str_err)/length *100)   )
+    
+    if test_agg and test_sel and test_cond:
+        print('\n Overall Accuracy======>{}\n'.format( ( overall_correct /len(test_loader.dataset))*100  ))
+
+        
 
 
 
