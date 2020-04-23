@@ -39,6 +39,8 @@ def process_sentence(sentence):
             continue
         if word in string.punctuation:
             continue
+        if '?' in word:
+            word=word.replace('?','')
 
         if '\'' in word:
 
