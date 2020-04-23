@@ -155,7 +155,7 @@ class CondPredictor(nn.Module):
 
         e_num_col , col_length = column_encode( self.cond_num_name_enc,col_inp_var,name_length,col_length )
 
-        col_num_att_val = self.cond_num_col_att(e_num_col).squeeze()
+        col_num_att_val = self.cond_num_col_att(e_num_col).squeeze(2)
         
         for idx, num in enumerate(col_length):
 
@@ -173,7 +173,7 @@ class CondPredictor(nn.Module):
 
         
         h_num_enc, _  = run_lstm( self.cond_num_lstm, q,q_len,hidden=(cond_num_h1,cond_num_h2))
-        num_att_val = self.cond_num_att(h_num_enc).squeeze()
+        num_att_val = self.cond_num_att(h_num_enc).squeeze(2)
 
         for i , num in enumerate(q_len ):
             if num < max_x_len:
@@ -210,7 +210,7 @@ class CondPredictor(nn.Module):
         k_cond_col = (h_col_enc.unsqueeze(1) * col_att.unsqueeze(3) ).sum(2)
 
 
-        cond_col_score = self.cond_col_out( self.cond_col_out_k(k_cond_col) + self.cond_col_out_col(e_cond_col )).squeeze()
+        cond_col_score = self.cond_col_out( self.cond_col_out_k(k_cond_col) + self.cond_col_out_col(e_cond_col )).squeeze(2)
 
         max_col_num = max(col_length)
 
@@ -270,7 +270,7 @@ class CondPredictor(nn.Module):
         # Column attention
         
         
-        op_att_val = torch.matmul( self.cond_op_att(h_op_enc).unsqueeze(1) , col_emb.unsqueeze(3) ).squeeze()
+        op_att_val = torch.matmul( self.cond_op_att(h_op_enc).unsqueeze(1) , col_emb.unsqueeze(3) ).squeeze(3)
         
         for  i ,num in enumerate(q_len):
             if num<max_x_len : 
@@ -328,7 +328,7 @@ class CondPredictor(nn.Module):
                         self.cond_str_out_h(h_ext) +
                         self.cond_str_out_col(col_ext)
                         
-                    ).squeeze()
+                    ).squeeze(4)
         
             for i , num in enumerate(q_len ):
 
@@ -372,7 +372,7 @@ class CondPredictor(nn.Module):
                         self.cond_str_out_g(g_ext) +
                         self.cond_str_out_col(col_ext)
 
-                ).squeeze()
+                ).squeeze(3)
 
 
                 for i ,num in enumerate(q_len):

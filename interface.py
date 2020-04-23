@@ -37,17 +37,17 @@ model.eval()
 sentence=sys.argv[1]
 sentence = process_sentence(sentence)
 
-question = [ sentence.split(' ') ,  sentence.split(' ')  ] 
+question = [ sentence.split(' ')] 
 
 
-columns =[ [ ['id'],['batch'],['name'],['salary']]  ,   [ ['id'],['batch'],['name'],['salary']]  ]
+columns =[ [ ['id'],['batch'],['name'],['salary']]  ]#,   [ ['id'],['batch'],['name'],['salary']]  ]
 
 scores = model( question, columns , (True,True,True) )
 
 agg = torch.argmax(torch.exp(scores[0]),dim=1)
 sel = torch.argmax(torch.exp(scores[1]),dim=1)
 where_clause_query = gen_query_acc(scores[2], question  )
-for i in range( len(agg) -1 ):
+for i in range( len(agg)):
 
     query = gen_sql_query(agg[i],sel[i],where_clause_query[i],columns[i],table_name)
     print(query)

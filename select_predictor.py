@@ -46,7 +46,7 @@ class SelectionPredictor(nn.Module):
 
         
         #to compute the attention score
-        attn_value=self.select_att(h_enc).squeeze()
+        attn_value=self.select_att(h_enc).squeeze(2)
         for idx,num in enumerate(x_len):
             if num<max_x_len:
                 attn_value[idx,num:]=-100
@@ -58,7 +58,7 @@ class SelectionPredictor(nn.Module):
         
         K_select=(h_enc*attention.unsqueeze(2).expand_as(h_enc)).sum(1)
         K_select_expand=K_select.unsqueeze(1)
-        select_score = self.select_out(self.select_out_K(K_select_expand) + self.select_out_col(emb_col)).squeeze()		
+        select_score = self.select_out(self.select_out_K(K_select_expand) + self.select_out_col(emb_col)).squeeze(2)		
         max_col_num=max(col_len)
         
         

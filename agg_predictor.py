@@ -53,7 +53,7 @@ class AggPredictor(nn.Module):
         max_q_len = max(q_len)              # For the purpose of padding upto length of the largest question 
 
         output,hidden =  run_lstm(self.rnn,q,q_len,hidden)
-        att_val = self.attn(output).squeeze()
+        att_val = self.attn(output).squeeze(2)
 
         for idx, num in enumerate(q_len):
             if num < max_q_len:
