@@ -1,5 +1,5 @@
 
-
+import string
 
 word_mappings = {
 
@@ -37,7 +37,8 @@ def process_sentence(sentence):
         
         if word == '':
             continue
-
+        if word in string.punctuation:
+            continue
 
         if '\'' in word:
 
