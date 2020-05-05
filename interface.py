@@ -22,9 +22,9 @@ n_epochs = 5
 table_name = 'EMPLOYEE'
 
 
-#word_embed = load_word_emb(filename)
+word_embed = load_word_emb(filename)
 
-word_emb =  WordEmbedding(N_word)
+word_emb =  WordEmbedding(N_word,word_embed)
 
 
 model = Model(hidden_dim,N_word,word_emb)
