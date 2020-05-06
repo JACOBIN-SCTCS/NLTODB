@@ -7,7 +7,6 @@ from model import Model
 from extract_vocab import load_word_emb
 import torch
 import numpy as np
-from utils import test_model
 import torch.nn as nn
 import torch.optim as optim
 
@@ -15,7 +14,7 @@ import torch.optim as optim
 
 def get_output_as_file(model,test_loader):
 
-
+    print("\n Creating file\n")
     model.agg_predictor.load_state_dict( torch.load('saved_models/agg_predictor.pth'))    
     model.sel_predictor.load_state_dict( torch.load('saved_models/sel_predictor.pth'))
     model.cond_predictor.load_state_dict(torch.load('saved_models/cond_predictor.pth'))
@@ -26,7 +25,7 @@ def get_output_as_file(model,test_loader):
 
     for data in test_loader:
 
-        scores  = model(data['question_tokens'] , data['column_headers'],test_entry,
+        scores  = model(data['question_tokens'] , data['column_headers'],(True,True,True),
                   data['where_col'], data['gt_where']
                 )
         
@@ -39,8 +38,8 @@ def get_output_as_file(model,test_loader):
             current_data = {}
             current_data["query"] = {}
 
-            current_data["query"]["sel"] = out_sel[b]
-            current_data["query"]["agg"] = out_agg[b]
+            current_data["query"]["sel"] = int(out_sel[b])
+            current_data["query"]["agg"] = int(out_agg[b])
             current_data["query"]["conds"] = pred_cond[b]
 
             json.dump(current_data,out_file)
@@ -49,9 +48,9 @@ def get_output_as_file(model,test_loader):
     out_file.close()
 
 
-filename = 'glove/glove.6B.50d.txt'
-N_word = 50
-batch_size = 10
+filename = 'glove/glove.42B.300d.txt'
+N_word = 300
+batch_size = 64
 hidden_dim = 100
 n_epochs = 5
 
@@ -65,7 +64,7 @@ model = Model(hidden_dim,N_word,word_emb)
 
 
 get_output_as_file(model,test_loader)
-
+print("\n Created file")
 
 
 
